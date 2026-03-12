@@ -8,12 +8,12 @@ const products = [
     price: 38.92,
     icon: "💍",
     images: [
-      "https://ae-pic-a1.aliexpress-media.com/kf/S12872310b1a84159af40657ec2faffecj.jpg_960x960q75.jpg_.avif",
-      "https://ae-pic-a1.aliexpress-media.com/kf/S8d0e10104e3f4f24b4e5f4db1b78e02aY.jpg_220x220q75.jpg_.avif",
-      "https://ae-pic-a1.aliexpress-media.com/kf/S0a38b884abb44b18b1cce56e7f9884d2k.jpg_220x220q75.jpg_.avif",
-      "https://ae-pic-a1.aliexpress-media.com/kf/Sce4f185de9a8474f948a1a94161161f0R.jpg_220x220q75.jpg_.avif",
-      "https://ae-pic-a1.aliexpress-media.com/kf/Sceb9a1fb5cc74438b9126882b50d2c16c.jpg_220x220q75.jpg_.avif",
-      "https://ae-pic-a1.aliexpress-media.com/kf/Sc4bb9d4f12de4c5bafce9e28043a8664W.jpg_220x220q75.jpg_.avif",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S12872310b1a84159af40657ec2faffecj.jpg_960x960q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S8d0e10104e3f4f24b4e5f4db1b78e02aY.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S0a38b884abb44b18b1cce56e7f9884d2k.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sce4f185de9a8474f948a1a94161161f0R.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sceb9a1fb5cc74438b9126882b50d2c16c.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sc4bb9d4f12de4c5bafce9e28043a8664W.jpg_220x220q75.jpg",
     ],
     sourceUrl:
       "https://www.aliexpress.us/item/3256811621897780.html",
@@ -148,9 +148,10 @@ function renderProducts() {
       for (const imageUrl of imageList) {
         const img = document.createElement("img");
         img.className = "product-image-slide";
-        img.src = imageUrl;
+        setImageWithFallback(img, imageUrl);
         img.alt = product.name;
         img.loading = "lazy";
+        img.referrerPolicy = "no-referrer";
         imageScrollEl.append(img);
       }
       galleryEl.hidden = false;
@@ -333,4 +334,30 @@ function requestAccess() {
 
     window.alert("Invalid username or password.");
   }
+}
+
+function setImageWithFallback(imgElement, url) {
+  const candidates = buildImageCandidates(url);
+  let index = 0;
+
+  const loadNext = () => {
+    if (index >= candidates.length) {
+      return;
+    }
+    imgElement.src = candidates[index];
+    index += 1;
+  };
+
+  imgElement.addEventListener("error", loadNext);
+  loadNext();
+}
+
+function buildImageCandidates(url) {
+  const candidates = [
+    url,
+    url.replace("_.avif", "_.webp"),
+    url.replace("_.avif", ""),
+    url.replace(/\.jpg_\d+x\d+q\d+\.jpg(?:_.avif|_.webp)?$/, ".jpg"),
+  ];
+  return [...new Set(candidates)];
 }
