@@ -18,12 +18,7 @@ const state = {
   cart: loadCart(),
 };
 
-const authGate = document.getElementById("auth-gate");
 const shopApp = document.getElementById("shop-app");
-const loginForm = document.getElementById("login-form");
-const usernameInput = document.getElementById("username-input");
-const passwordInput = document.getElementById("password-input");
-const loginError = document.getElementById("login-error");
 const productGrid = document.getElementById("product-grid");
 const searchInput = document.getElementById("search-input");
 const categoryBubbles = document.getElementById("category-bubbles");
@@ -46,25 +41,11 @@ let shopInitialized = false;
 boot();
 
 function boot() {
-  bindAuth();
-  showAuthGate();
-}
-
-function bindAuth() {
-  loginForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value;
-
-    if (username !== "mermy" || password !== "wolf") {
-      loginError.textContent = "Invalid username or password.";
-      return;
-    }
-
-    loginError.textContent = "";
+  showLockedScreen();
+  if (requestAccess()) {
     showShop();
     initShop();
-  });
+  }
 }
 
 function initShop() {
@@ -273,13 +254,31 @@ function formatHearts(value) {
 function showShop() {
   document.body.classList.remove("auth-locked");
   document.title = "Mermy Shop";
-  authGate.hidden = true;
   shopApp.hidden = false;
 }
 
-function showAuthGate() {
+function showLockedScreen() {
   document.body.classList.add("auth-locked");
-  document.title = "Access Portal";
-  authGate.hidden = false;
+  document.title = "Loading";
   shopApp.hidden = true;
+}
+
+function requestAccess() {
+  while (true) {
+    const username = window.prompt("Username:");
+    if (username === null) {
+      return false;
+    }
+
+    const password = window.prompt("Password:");
+    if (password === null) {
+      return false;
+    }
+
+    if (username.trim() === "mermy" && password === "wolf") {
+      return true;
+    }
+
+    window.alert("Invalid username or password.");
+  }
 }
