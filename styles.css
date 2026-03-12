@@ -230,13 +230,26 @@ body {
   font-size: 1.4rem;
 }
 
-.product-image {
+.product-gallery {
+  border: 1px solid #ffd4e8;
+  border-radius: 12px;
+  background: #fff8fc;
+  overflow: hidden;
+}
+
+.product-image-scroll {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.product-image-slide {
   width: 100%;
+  flex: 0 0 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
-  border-radius: 12px;
-  border: 1px solid #ffd4e8;
-  background: #fff8fc;
+  scroll-snap-align: start;
 }
 
 .product-card h3 {
