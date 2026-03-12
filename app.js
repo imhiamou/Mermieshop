@@ -7,8 +7,14 @@ const products = [
     category: "jewelry",
     price: 38.92,
     icon: "💍",
-    image:
+    images: [
       "https://ae-pic-a1.aliexpress-media.com/kf/S12872310b1a84159af40657ec2faffecj.jpg_960x960q75.jpg_.avif",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S8d0e10104e3f4f24b4e5f4db1b78e02aY.jpg_220x220q75.jpg_.avif",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S0a38b884abb44b18b1cce56e7f9884d2k.jpg_220x220q75.jpg_.avif",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sce4f185de9a8474f948a1a94161161f0R.jpg_220x220q75.jpg_.avif",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sceb9a1fb5cc74438b9126882b50d2c16c.jpg_220x220q75.jpg_.avif",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sc4bb9d4f12de4c5bafce9e28043a8664W.jpg_220x220q75.jpg_.avif",
+    ],
     sourceUrl:
       "https://www.aliexpress.us/item/3256811621897780.html",
   },
@@ -20,7 +26,7 @@ const categories = [
   { id: "books", label: "Books", icon: "📚" },
   { id: "toys", label: "Toys", icon: "🧸" },
   { id: "kitchen", label: "Kitchen", icon: "🍳" },
-  { id: "clothes", label: "Clothes", icon: "👗" },
+  { id: "fashion", label: "Fashion", icon: "👠" },
   { id: "accessories", label: "Accessories", icon: "👜" },
 ];
 
@@ -126,17 +132,33 @@ function renderProducts() {
 
   for (const product of filtered) {
     const node = productTemplate.content.firstElementChild.cloneNode(true);
-    const imageEl = node.querySelector(".product-image");
+    const galleryEl = node.querySelector(".product-gallery");
+    const imageScrollEl = node.querySelector(".product-image-scroll");
     const iconEl = node.querySelector(".product-icon");
-    if (product.image) {
-      imageEl.src = product.image;
-      imageEl.alt = product.name;
-      imageEl.hidden = false;
+
+    const imageList =
+      Array.isArray(product.images) && product.images.length > 0
+        ? product.images
+        : product.image
+        ? [product.image]
+        : [];
+
+    if (imageList.length > 0) {
+      imageScrollEl.innerHTML = "";
+      for (const imageUrl of imageList) {
+        const img = document.createElement("img");
+        img.className = "product-image-slide";
+        img.src = imageUrl;
+        img.alt = product.name;
+        img.loading = "lazy";
+        imageScrollEl.append(img);
+      }
+      galleryEl.hidden = false;
       iconEl.hidden = true;
     } else {
       iconEl.textContent = product.icon || "🛍️";
       iconEl.hidden = false;
-      imageEl.hidden = true;
+      galleryEl.hidden = true;
     }
     node.querySelector("h3").textContent = product.name;
     node.querySelector(".product-description").textContent = product.description;
