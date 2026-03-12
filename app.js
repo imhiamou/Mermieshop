@@ -1,75 +1,16 @@
-const products = [
-  {
-    id: "rose-serum",
-    name: "Rose Glow Serum",
-    description: "Light hydration serum with a gentle floral scent.",
-    category: "beauty",
-    price: 18.0,
-    icon: "🧴",
-  },
-  {
-    id: "pink-candle",
-    name: "Blush Dream Candle",
-    description: "Soft vanilla and peony candle for cozy evenings.",
-    category: "home",
-    price: 14.5,
-    icon: "🕯️",
-  },
-  {
-    id: "berry-notebook",
-    name: "Berry Dot Notebook",
-    description: "A5 dotted notebook with a smooth matte pink cover.",
-    category: "stationery",
-    price: 9.0,
-    icon: "📓",
-  },
-  {
-    id: "marshmallow-cookies",
-    name: "Marshmallow Cookies",
-    description: "Crunchy cookies with a sweet marshmallow center.",
-    category: "snacks",
-    price: 7.0,
-    icon: "🍪",
-  },
-  {
-    id: "silk-scrunchie",
-    name: "Silk Pink Scrunchie",
-    description: "Smooth, gentle scrunchie for everyday hairstyles.",
-    category: "beauty",
-    price: 6.5,
-    icon: "🎀",
-  },
-  {
-    id: "petal-mug",
-    name: "Petal Ceramic Mug",
-    description: "Cute blush mug, perfect for tea or hot chocolate.",
-    category: "home",
-    price: 12.0,
-    icon: "☕",
-  },
-  {
-    id: "sticker-pack",
-    name: "Floral Sticker Pack",
-    description: "30 pastel floral stickers for journals and planners.",
-    category: "stationery",
-    price: 5.0,
-    icon: "🌷",
-  },
-  {
-    id: "strawberry-bites",
-    name: "Strawberry Bites",
-    description: "Freeze-dried strawberry snack with no added sugar.",
-    category: "snacks",
-    price: 8.5,
-    icon: "🍓",
-  },
+const products = [];
+
+const categories = [
+  { id: "all", label: "All", icon: "🫧" },
+  { id: "jewelry", label: "Jewelry", icon: "💍" },
+  { id: "books", label: "Books", icon: "📚" },
+  { id: "toys", label: "Toys", icon: "🧸" },
+  { id: "kitchen", label: "Kitchen", icon: "🍳" },
+  { id: "clothes", label: "Clothes", icon: "👗" },
+  { id: "accessories", label: "Accessories", icon: "👜" },
 ];
 
-const CART_STORAGE_KEY = "pink-petals-cart";
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
+const CART_STORAGE_KEY = "mermy-shop-cart";
 
 const state = {
   query: "",
@@ -79,7 +20,7 @@ const state = {
 
 const productGrid = document.getElementById("product-grid");
 const searchInput = document.getElementById("search-input");
-const categorySelect = document.getElementById("category-select");
+const categoryBubbles = document.getElementById("category-bubbles");
 const cartCount = document.getElementById("cart-count");
 const openCartBtn = document.getElementById("open-cart-btn");
 const closeCartBtn = document.getElementById("close-cart-btn");
@@ -98,16 +39,12 @@ const cartItemTemplate = document.getElementById("cart-item-template");
 init();
 
 function init() {
+  renderCategoryBubbles();
   renderProducts();
   renderCart();
 
   searchInput.addEventListener("input", (event) => {
     state.query = event.target.value.trim().toLowerCase();
-    renderProducts();
-  });
-
-  categorySelect.addEventListener("change", (event) => {
-    state.category = event.target.value;
     renderProducts();
   });
 
@@ -153,7 +90,8 @@ function renderProducts() {
   });
 
   if (filtered.length === 0) {
-    productGrid.innerHTML = '<p class="empty-note">No products found.</p>';
+    productGrid.innerHTML =
+      '<p class="empty-note">No items for sale right now. Check back soon.</p>';
     return;
   }
 
@@ -162,9 +100,32 @@ function renderProducts() {
     node.querySelector(".product-icon").textContent = product.icon;
     node.querySelector("h3").textContent = product.name;
     node.querySelector(".product-description").textContent = product.description;
-    node.querySelector(".price").textContent = currency.format(product.price);
+    node.querySelector(".price").textContent = formatHearts(product.price);
     node.querySelector("button").addEventListener("click", () => addToCart(product.id));
     productGrid.append(node);
+  }
+}
+
+function renderCategoryBubbles() {
+  categoryBubbles.innerHTML = "";
+
+  for (const category of categories) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "bubble-chip";
+    button.dataset.category = category.id;
+    button.textContent = `${category.icon} ${category.label}`;
+    if (state.category === category.id) {
+      button.classList.add("active");
+    }
+
+    button.addEventListener("click", () => {
+      state.category = category.id;
+      renderCategoryBubbles();
+      renderProducts();
+    });
+
+    categoryBubbles.append(button);
   }
 }
 
@@ -181,9 +142,7 @@ function renderCart() {
 
       const node = cartItemTemplate.content.firstElementChild.cloneNode(true);
       node.querySelector("h4").textContent = product.name;
-      node.querySelector(".cart-item-price").textContent = `${currency.format(
-        product.price
-      )} each`;
+      node.querySelector(".cart-item-price").textContent = `${formatHearts(product.price)} each`;
       node.querySelector(".qty").textContent = String(qty);
       node
         .querySelector(".increase")
@@ -201,9 +160,9 @@ function renderCart() {
 
   const subtotal = calculateSubtotal();
   const shipping = subtotal === 0 ? 0 : subtotal >= 50 ? 0 : 4.99;
-  subtotalValue.textContent = currency.format(subtotal);
-  shippingValue.textContent = shipping === 0 ? "Free" : currency.format(shipping);
-  totalValue.textContent = currency.format(subtotal + shipping);
+  subtotalValue.textContent = formatHearts(subtotal);
+  shippingValue.textContent = shipping === 0 ? "Free" : formatHearts(shipping);
+  totalValue.textContent = formatHearts(subtotal + shipping);
   cartCount.textContent = String(getItemCount());
 }
 
@@ -257,7 +216,13 @@ function closeCart() {
 
 function loadCart() {
   try {
-    return JSON.parse(localStorage.getItem(CART_STORAGE_KEY)) || {};
+    const raw = JSON.parse(localStorage.getItem(CART_STORAGE_KEY)) || {};
+    const allowedIds = new Set(products.map((product) => product.id));
+    return Object.fromEntries(
+      Object.entries(raw).filter(
+        ([id, qty]) => allowedIds.has(id) && Number.isFinite(qty) && qty > 0
+      )
+    );
   } catch {
     return {};
   }
@@ -265,4 +230,8 @@ function loadCart() {
 
 function persistCart() {
   localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.cart));
+}
+
+function formatHearts(value) {
+  return `❤️${Number(value).toFixed(2)}`;
 }

@@ -143,6 +143,41 @@ body {
   flex-wrap: wrap;
 }
 
+.category-strip {
+  margin-top: 0.9rem;
+}
+
+.strip-label {
+  margin: 0 0 0.4rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.category-bubbles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.bubble-chip {
+  border: 1px solid #f1bdd8;
+  background: #fff;
+  color: var(--pink-700);
+  border-radius: 999px;
+  padding: 0.38rem 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.bubble-chip.active {
+  background: linear-gradient(135deg, var(--pink-400), var(--pink-500));
+  color: #fff;
+  border-color: transparent;
+}
+
 .field {
   display: grid;
   gap: 0.35rem;
@@ -155,7 +190,6 @@ body {
 }
 
 .field input,
-.field select,
 .field textarea {
   width: 100%;
   border: 1px solid #f0bfd8;

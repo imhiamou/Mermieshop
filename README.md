@@ -1,13 +1,14 @@
-# Pink Petals Shop
+# Mermy Shop
 
 A small pink online shop built from scratch using plain HTML, CSS, and JavaScript.
 
 ## Features
 
 - Pink-themed responsive storefront
-- Product listing with category filter + search
+- Category bubble filters with icons (jewelry, books, toys, kitchen, clothes, accessories)
+- Currently no items for sale (coming soon state)
 - Add-to-cart with quantity controls
-- Sliding cart drawer with subtotal/shipping/total
+- Sliding cart drawer with subtotal/shipping/total in heart format (`❤️`)
 - Checkout dialog with simple form validation
 - Cart persistence via `localStorage`
 
