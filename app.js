@@ -273,7 +273,12 @@ function persistCart() {
 }
 
 function formatHearts(value) {
-  return `❤️${Number(value).toFixed(2)}`;
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return "—";
+  }
+  const hearts = Math.max(1, Math.ceil(amount / 10));
+  return "❤️".repeat(hearts);
 }
 
 function showShop() {
