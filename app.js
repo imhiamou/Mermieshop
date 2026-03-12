@@ -30,12 +30,16 @@ const categories = [
   { id: "accessories", label: "Accessories", icon: "👜" },
 ];
 
-const CART_STORAGE_KEY = "mermy-shop-cart";
+const USERS_STORAGE_KEY = "mermy-shop-users";
+const LEGACY_CART_STORAGE_KEY = "mermy-shop-cart";
+const AUTH_USERNAME = "mermy";
+const AUTH_PASSWORD = "wolf";
 
 const state = {
   query: "",
   category: "all",
-  cart: loadCart(),
+  cart: {},
+  activeUser: null,
 };
 
 const shopApp = document.getElementById("shop-app");
@@ -62,10 +66,29 @@ boot();
 
 function boot() {
   showLockedScreen();
-  if (requestAccess()) {
+  const username = requestAccess();
+  if (username) {
+    startUserSession(username);
     showShop();
     initShop();
   }
+}
+
+function startUserSession(username) {
+  state.activeUser = username;
+  const users = loadUsers();
+  const profile = users[username] || { cart: {}, lastLoginAt: null };
+
+  const legacyCart = loadLegacyCart();
+  if (Object.keys(profile.cart || {}).length === 0 && Object.keys(legacyCart).length > 0) {
+    profile.cart = legacyCart;
+    localStorage.removeItem(LEGACY_CART_STORAGE_KEY);
+  }
+
+  profile.lastLoginAt = new Date().toISOString();
+  state.cart = sanitizeCart(profile.cart);
+  users[username] = profile;
+  saveUsers(users);
 }
 
 function initShop() {
@@ -222,9 +245,9 @@ function renderCart() {
   }
 
   const subtotal = calculateSubtotal();
-  const shipping = subtotal === 0 ? 0 : subtotal >= 50 ? 0 : 4.99;
+  const shipping = 0;
   subtotalValue.textContent = formatHearts(subtotal);
-  shippingValue.textContent = shipping === 0 ? "Free" : formatHearts(shipping);
+  shippingValue.textContent = "Free";
   totalValue.textContent = formatHearts(subtotal + shipping);
   cartCount.textContent = String(getItemCount());
 }
@@ -262,7 +285,11 @@ function calculateSubtotal() {
 }
 
 function getItemCount() {
-  return Object.values(state.cart).reduce((sum, qty) => sum + qty, 0);
+  return Object.entries(state.cart).reduce((sum, [id, qty]) => {
+    const product = products.find((item) => item.id === id);
+    if (!product) return sum;
+    return sum + qty;
+  }, 0);
 }
 
 function openCart() {
@@ -277,22 +304,22 @@ function closeCart() {
   overlay.hidden = true;
 }
 
-function loadCart() {
+function loadLegacyCart() {
   try {
-    const raw = JSON.parse(localStorage.getItem(CART_STORAGE_KEY)) || {};
-    const allowedIds = new Set(products.map((product) => product.id));
-    return Object.fromEntries(
-      Object.entries(raw).filter(
-        ([id, qty]) => allowedIds.has(id) && Number.isFinite(qty) && qty > 0
-      )
-    );
+    const raw = JSON.parse(localStorage.getItem(LEGACY_CART_STORAGE_KEY)) || {};
+    return sanitizeCart(raw);
   } catch {
     return {};
   }
 }
 
 function persistCart() {
-  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(state.cart));
+  if (!state.activeUser) return;
+  const users = loadUsers();
+  const profile = users[state.activeUser] || { cart: {}, lastLoginAt: null };
+  profile.cart = sanitizeCart(state.cart);
+  users[state.activeUser] = profile;
+  saveUsers(users);
 }
 
 function formatHearts(value) {
@@ -328,12 +355,40 @@ function requestAccess() {
       return false;
     }
 
-    if (username.trim() === "mermy" && password === "wolf") {
-      return true;
+    if (username.trim() === AUTH_USERNAME && password === AUTH_PASSWORD) {
+      return AUTH_USERNAME;
     }
 
     window.alert("Invalid username or password.");
   }
+}
+
+function loadUsers() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY)) || {};
+    if (raw && typeof raw === "object") {
+      return raw;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
+function saveUsers(users) {
+  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+}
+
+function sanitizeCart(cartLike) {
+  if (!cartLike || typeof cartLike !== "object") {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(cartLike).filter(
+      ([id, qty]) => typeof id === "string" && Number.isFinite(qty) && qty > 0
+    )
+  );
 }
 
 function setImageWithFallback(imgElement, url) {
