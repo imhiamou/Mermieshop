@@ -10,7 +10,6 @@ const categories = [
   { id: "accessories", label: "Accessories", icon: "👜" },
 ];
 
-const AUTH_STORAGE_KEY = "mermy-shop-auth";
 const CART_STORAGE_KEY = "mermy-shop-cart";
 
 const state = {
@@ -48,32 +47,20 @@ boot();
 
 function boot() {
   bindAuth();
-
-  if (isAuthenticated()) {
-    showShop();
-    initShop();
-    return;
-  }
-
   showAuthGate();
 }
 
 function bindAuth() {
   loginForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    const username = usernameInput.value.trim().toLowerCase();
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
 
-    if (username !== "mermy") {
-      loginError.textContent = 'Username must be "mermy".';
+    if (username !== "mermy" || password !== "wolf") {
+      loginError.textContent = "Invalid username or password.";
       return;
     }
 
-    if (passwordInput.value.length === 0) {
-      loginError.textContent = "Enter any password to continue.";
-      return;
-    }
-
-    localStorage.setItem(AUTH_STORAGE_KEY, "true");
     loginError.textContent = "";
     showShop();
     initShop();
@@ -283,16 +270,16 @@ function formatHearts(value) {
   return `❤️${Number(value).toFixed(2)}`;
 }
 
-function isAuthenticated() {
-  return localStorage.getItem(AUTH_STORAGE_KEY) === "true";
-}
-
 function showShop() {
+  document.body.classList.remove("auth-locked");
+  document.title = "Mermy Shop";
   authGate.hidden = true;
   shopApp.hidden = false;
 }
 
 function showAuthGate() {
+  document.body.classList.add("auth-locked");
+  document.title = "Access Portal";
   authGate.hidden = false;
   shopApp.hidden = true;
 }

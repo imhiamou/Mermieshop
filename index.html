@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mermy Shop</title>
+    <title>Access Portal</title>
     <meta
       name="description"
-      content="A small pink online shop by Mermy Shop."
+      content="Private access page."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,12 +16,11 @@
     />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
+  <body class="auth-locked">
     <div id="auth-gate" class="auth-gate">
       <form id="login-form" class="login-card" autocomplete="off">
-        <p class="hero-kicker">Private Access</p>
-        <h1>Mermy Shop</h1>
-        <p>Enter your login to open the shop.</p>
+        <h1>Access Portal</h1>
+        <p>Enter credentials to continue.</p>
         <label class="field">
           <span>Username</span>
           <input id="username-input" name="username" required />
@@ -31,7 +30,7 @@
           <input id="password-input" name="password" type="password" required />
         </label>
         <p id="login-error" class="login-error" aria-live="polite"></p>
-        <button class="confirm-btn" type="submit">Enter shop</button>
+        <button class="confirm-btn" type="submit">Enter</button>
       </form>
     </div>
 
