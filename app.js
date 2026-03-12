@@ -1,4 +1,18 @@
-const products = [];
+const products = [
+  {
+    id: "haimatong-pt950-ring",
+    name: "HAIMATONG PT950 Moissanite Ring",
+    description:
+      "Platinum-edged moissanite ring with low-key European/American style.",
+    category: "jewelry",
+    price: 38.92,
+    icon: "💍",
+    image:
+      "https://ae-pic-a1.aliexpress-media.com/kf/S12872310b1a84159af40657ec2faffecj.jpg_960x960q75.jpg_.avif",
+    sourceUrl:
+      "https://www.aliexpress.us/item/3256811621897780.html",
+  },
+];
 
 const categories = [
   { id: "all", label: "All", icon: "🫧" },
@@ -112,7 +126,18 @@ function renderProducts() {
 
   for (const product of filtered) {
     const node = productTemplate.content.firstElementChild.cloneNode(true);
-    node.querySelector(".product-icon").textContent = product.icon;
+    const imageEl = node.querySelector(".product-image");
+    const iconEl = node.querySelector(".product-icon");
+    if (product.image) {
+      imageEl.src = product.image;
+      imageEl.alt = product.name;
+      imageEl.hidden = false;
+      iconEl.hidden = true;
+    } else {
+      iconEl.textContent = product.icon || "🛍️";
+      iconEl.hidden = false;
+      imageEl.hidden = true;
+    }
     node.querySelector("h3").textContent = product.name;
     node.querySelector(".product-description").textContent = product.description;
     node.querySelector(".price").textContent = formatHearts(product.price);
@@ -248,7 +273,12 @@ function persistCart() {
 }
 
 function formatHearts(value) {
-  return `❤️${Number(value).toFixed(2)}`;
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return "—";
+  }
+  const hearts = Math.max(1, Math.ceil(amount / 10));
+  return "❤️".repeat(hearts);
 }
 
 function showShop() {
