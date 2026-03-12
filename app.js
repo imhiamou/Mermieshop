@@ -40,9 +40,15 @@ const state = {
   category: "all",
   cart: {},
   activeUser: null,
+  selectedProductId: null,
 };
 
 const shopApp = document.getElementById("shop-app");
+const shopHomeView = document.getElementById("shop-home-view");
+const productDetailView = document.getElementById("product-detail-view");
+const detailBackBtn = document.getElementById("detail-back-btn");
+const detailImageScroll = document.getElementById("detail-image-scroll");
+const detailDescription = document.getElementById("detail-description");
 const productGrid = document.getElementById("product-grid");
 const searchInput = document.getElementById("search-input");
 const categoryBubbles = document.getElementById("category-bubbles");
@@ -109,6 +115,7 @@ function initShop() {
   openCartBtn.addEventListener("click", openCart);
   closeCartBtn.addEventListener("click", closeCart);
   overlay.addEventListener("click", closeCart);
+  detailBackBtn.addEventListener("click", closeProductDetail);
 
   checkoutBtn.addEventListener("click", () => {
     if (getItemCount() === 0) {
@@ -158,25 +165,11 @@ function renderProducts() {
     const galleryEl = node.querySelector(".product-gallery");
     const imageScrollEl = node.querySelector(".product-image-scroll");
     const iconEl = node.querySelector(".product-icon");
-
-    const imageList =
-      Array.isArray(product.images) && product.images.length > 0
-        ? product.images
-        : product.image
-        ? [product.image]
-        : [];
+    const imageList = getProductImages(product);
+    const addToCartBtn = node.querySelector("button");
 
     if (imageList.length > 0) {
-      imageScrollEl.innerHTML = "";
-      for (const imageUrl of imageList) {
-        const img = document.createElement("img");
-        img.className = "product-image-slide";
-        setImageWithFallback(img, imageUrl);
-        img.alt = product.name;
-        img.loading = "lazy";
-        img.referrerPolicy = "no-referrer";
-        imageScrollEl.append(img);
-      }
+      renderImageGallery(imageScrollEl, imageList, product.name, "product-image-slide");
       galleryEl.hidden = false;
       iconEl.hidden = true;
     } else {
@@ -187,7 +180,19 @@ function renderProducts() {
     node.querySelector("h3").textContent = product.name;
     node.querySelector(".product-description").textContent = product.description;
     node.querySelector(".price").textContent = formatHearts(product.price);
-    node.querySelector("button").addEventListener("click", () => addToCart(product.id));
+    node.setAttribute("role", "button");
+    node.tabIndex = 0;
+    node.addEventListener("click", () => openProductDetail(product.id));
+    node.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openProductDetail(product.id);
+      }
+    });
+    addToCartBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      addToCart(product.id);
+    });
     productGrid.append(node);
   }
 }
@@ -227,7 +232,26 @@ function renderCart() {
       if (!product) continue;
 
       const node = cartItemTemplate.content.firstElementChild.cloneNode(true);
-      node.querySelector("h4").textContent = product.name;
+      const previewBtn = node.querySelector(".cart-item-preview");
+      const previewImage = node.querySelector(".cart-item-image");
+      const previewFallback = node.querySelector(".cart-item-fallback");
+      const images = getProductImages(product);
+
+      if (images.length > 0) {
+        setImageWithFallback(previewImage, images[0]);
+        previewImage.alt = product.name;
+        previewImage.hidden = false;
+        previewFallback.hidden = true;
+      } else {
+        previewFallback.textContent = product.icon || "🛍️";
+        previewFallback.hidden = false;
+        previewImage.hidden = true;
+      }
+
+      previewBtn.addEventListener("click", () => openProductDetail(product.id));
+      const titleEl = node.querySelector("h4");
+      titleEl.textContent = product.name;
+      titleEl.addEventListener("click", () => openProductDetail(product.id));
       node.querySelector(".cart-item-price").textContent = `${formatHearts(product.price)} each`;
       node.querySelector(".qty").textContent = String(qty);
       node
@@ -335,6 +359,7 @@ function showShop() {
   document.body.classList.remove("auth-locked");
   document.title = "Mermy Shop";
   shopApp.hidden = false;
+  closeProductDetail();
 }
 
 function showLockedScreen() {
@@ -389,6 +414,59 @@ function sanitizeCart(cartLike) {
       ([id, qty]) => typeof id === "string" && Number.isFinite(qty) && qty > 0
     )
   );
+}
+
+function openProductDetail(productId) {
+  const product = getProductById(productId);
+  if (!product) return;
+
+  const images = getProductImages(product);
+  detailImageScroll.innerHTML = "";
+  if (images.length > 0) {
+    renderImageGallery(detailImageScroll, images, product.name, "detail-image-slide");
+  } else {
+    detailImageScroll.innerHTML = '<p class="empty-note">No images available.</p>';
+  }
+
+  detailDescription.textContent = product.description || "No description available.";
+  state.selectedProductId = productId;
+  shopHomeView.hidden = true;
+  productDetailView.hidden = false;
+  closeCart();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function closeProductDetail() {
+  state.selectedProductId = null;
+  productDetailView.hidden = true;
+  shopHomeView.hidden = false;
+}
+
+function getProductById(productId) {
+  return products.find((product) => product.id === productId);
+}
+
+function getProductImages(product) {
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    return product.images;
+  }
+  if (product.image) {
+    return [product.image];
+  }
+  return [];
+}
+
+function renderImageGallery(container, imageList, altText, imageClass) {
+  container.innerHTML = "";
+  for (const imageUrl of imageList) {
+    const img = document.createElement("img");
+    img.className = imageClass;
+    setImageWithFallback(img, imageUrl);
+    img.alt = altText;
+    img.loading = "lazy";
+    img.referrerPolicy = "no-referrer";
+    container.append(img);
+  }
 }
 
 function setImageWithFallback(imgElement, url) {
