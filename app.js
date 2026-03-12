@@ -10,6 +10,7 @@ const categories = [
   { id: "accessories", label: "Accessories", icon: "👜" },
 ];
 
+const AUTH_STORAGE_KEY = "mermy-shop-auth";
 const CART_STORAGE_KEY = "mermy-shop-cart";
 
 const state = {
@@ -18,6 +19,12 @@ const state = {
   cart: loadCart(),
 };
 
+const authGate = document.getElementById("auth-gate");
+const shopApp = document.getElementById("shop-app");
+const loginForm = document.getElementById("login-form");
+const usernameInput = document.getElementById("username-input");
+const passwordInput = document.getElementById("password-input");
+const loginError = document.getElementById("login-error");
 const productGrid = document.getElementById("product-grid");
 const searchInput = document.getElementById("search-input");
 const categoryBubbles = document.getElementById("category-bubbles");
@@ -36,9 +43,49 @@ const checkoutForm = document.getElementById("checkout-form");
 const productTemplate = document.getElementById("product-card-template");
 const cartItemTemplate = document.getElementById("cart-item-template");
 
-init();
+let shopInitialized = false;
+boot();
 
-function init() {
+function boot() {
+  bindAuth();
+
+  if (isAuthenticated()) {
+    showShop();
+    initShop();
+    return;
+  }
+
+  showAuthGate();
+}
+
+function bindAuth() {
+  loginForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const username = usernameInput.value.trim().toLowerCase();
+
+    if (username !== "mermy") {
+      loginError.textContent = 'Username must be "mermy".';
+      return;
+    }
+
+    if (passwordInput.value.length === 0) {
+      loginError.textContent = "Enter any password to continue.";
+      return;
+    }
+
+    localStorage.setItem(AUTH_STORAGE_KEY, "true");
+    loginError.textContent = "";
+    showShop();
+    initShop();
+  });
+}
+
+function initShop() {
+  if (shopInitialized) {
+    return;
+  }
+  shopInitialized = true;
+
   renderCategoryBubbles();
   renderProducts();
   renderCart();
@@ -234,4 +281,18 @@ function persistCart() {
 
 function formatHearts(value) {
   return `❤️${Number(value).toFixed(2)}`;
+}
+
+function isAuthenticated() {
+  return localStorage.getItem(AUTH_STORAGE_KEY) === "true";
+}
+
+function showShop() {
+  authGate.hidden = true;
+  shopApp.hidden = false;
+}
+
+function showAuthGate() {
+  authGate.hidden = false;
+  shopApp.hidden = true;
 }

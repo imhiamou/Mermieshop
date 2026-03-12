@@ -27,6 +27,38 @@ body {
   background: radial-gradient(circle at top left, #ffddee, #fff6fb 45%, #fff);
 }
 
+.auth-gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.login-card {
+  width: min(100%, 420px);
+  background: #fff;
+  border: 1px solid #ffd9ea;
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.3rem;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.login-card h1 {
+  margin: 0;
+}
+
+.login-card p {
+  margin: 0;
+}
+
+.login-error {
+  min-height: 1.25rem;
+  color: #b21d64;
+  font-weight: 700;
+}
+
 .page-shell {
   max-width: 1100px;
   margin: 0 auto;
