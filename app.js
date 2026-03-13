@@ -18,6 +18,100 @@ const products = [
     sourceUrl:
       "https://www.aliexpress.us/item/3256811621897780.html",
   },
+  {
+    id: "ali-1005010094002829",
+    name: "Moissanite Woman Pendant Necklace",
+    description:
+      "Fine jewelry pendant necklace in sterling silver style for party and bridal looks.",
+    category: "jewelry",
+    price: 59.79,
+    icon: "💎",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sc3f537fe2c044432a90176c2ce2b523dl.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sb56b8b2fda6d448cae5d74dbc15fc643x.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S375c9df05c224a6eb53944f0aa23bc41G.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S2a32de89e0bf4523a84c06f5a493bc79a.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Se1895bb64f054acea352854f397304c2Y.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S19a15ca01f904163b373dd048517fc706.jpg_220x220q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005010094002829.html",
+  },
+  {
+    id: "ali-1005008352168769",
+    name: "14k Gold Pendant Moissanite Necklace",
+    description:
+      "Real gold pendant style necklace with moissanite options for engagement and luxury outfits.",
+    category: "jewelry",
+    price: 43.69,
+    icon: "💎",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/Se0e2ab2ac64e4719bb0b2721dd55c877Q.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Secc01a34db1847829e658165eac5d927W.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sd70befef358d4339bcdcc51b8db38f73p.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S08953fed0da24bbdac9fb48af83eb77fl.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sc5812d90377847639580af10f3ab2cd35.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S44d74cea5d334646a02d8a56c15ecb8aU.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sc5c1408251374d0c9b8d0f8d32d393383.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S0973d9eeb61a4c57a03994c0fd9b867cq.jpg_220x220q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005008352168769.html",
+  },
+  {
+    id: "ali-1005010383128292",
+    name: "S925 Rabbit Circle Necklace",
+    description:
+      "Cute rabbit jumping circle pendant necklace in S925 sterling silver style.",
+    category: "jewelry",
+    price: 32.6,
+    icon: "💍",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sd7c22d2bf4684e95b4ab4cfa19616b5b1.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S96be7bf4449f4864bb3c5ac68115c4b2y.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S90edf702faa14141848402376bce2840Z.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S92e58bf21446467daae08a59bfc17a1fg.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S60ebda7324d441aba6ac50c7574c57edV.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S937566aac382422e838c211d6637d4dff.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S7176631ac86047e3bf88997df985c1e7q.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sd7c22d2bf4684e95b4ab4cfa19616b5b1.jpg_960x960q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005010383128292.html",
+  },
+  {
+    id: "ali-1005008316028120",
+    name: "1CT Heart Cut Moissanite Necklace",
+    description:
+      "Dainty 18k gold-plated sterling silver neck chain pendant with GRA certificate style.",
+    category: "jewelry",
+    price: 52.18,
+    icon: "💎",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sf2584d4d4cad4ef4ac05f42f7c44e583S.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S448b69c2b8114f2094c9422c3c79fa4eO.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sf935180289914bf2994431bdc127bb538.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S751519e308b0481fbf178238f96558285.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sd813ed3f4456414bb02de80e47960497e.jpg_220x220q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005008316028120.html",
+  },
+  {
+    id: "ali-1005010466056447",
+    name: "Moissanite Rotating Windmill Earrings",
+    description:
+      "S925 sterling silver white-gold-plated rotating windmill earrings with D color moissanite style.",
+    category: "jewelry",
+    price: 48.05,
+    icon: "✨",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/S8be50ecff21d47dfa8826f14a309dc02Z.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Se86c3f33d857418a88120db063722d88v.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S4eb550265f79443eb2fd0dab4c6f3f4aZ.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S70a8e9c507ed48a6afac453362a0813dI.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sb4af1cc9cd264700afbf82dd57f1d3d0I.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sf771deb2369245ac84bc25131b3ad88bI.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S8be50ecff21d47dfa8826f14a309dc02Z.jpg_960x960q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005010466056447.html",
+  },
 ];
 
 const categories = [
