@@ -368,6 +368,105 @@ const products = [
     ],
     sourceUrl: "https://ar.aliexpress.com/item/3256808122156420.html",
   },
+  {
+    id: "ali-1005006832100203",
+    name: "Hijab Volumising Scrunchie Hair Ring",
+    description:
+      "Plain big hair ring tie bun clip style headwear for women and hijab styling.",
+    category: "fashion",
+    price: 0.99,
+    icon: "👠",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/S8e84f88767ee4cd494d87f3bd3f5580aR.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Se89e202c201a4cd0bdae0602451e9a48S.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S5a5f09d859cb44f98b8b42ab558eb9c0a.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S772c7f6f637e4cf7bbaff08408f08436C.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sc887b36d893249d78a78434eef7a3bc8F.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S93d5ea5f284749cf90e80461ac8c58ecV.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Seb5e5c0276c540cbb9b15330fe2c01bby.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S217632e477064472b8fc3f898fb013aeg.jpg_220x220q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005006832100203.html",
+  },
+  {
+    id: "ali-1005006166607470",
+    name: "Warm Winter Scarf with Tassels",
+    description:
+      "Thick warm scarf design with print and tassels for everyday winter fashion looks.",
+    category: "fashion",
+    price: 6.13,
+    icon: "🧣",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sdfba67d833b74d0f9fa4f2b7ef4d01980.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S09add0c7eae4444da03bb1310ba45414m.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sfd120dbcf32d4fa58f0d46dafcdf52a80.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S2a7d49536ab5437cb124e7046768a8bd0.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S953ec3f433044056a9c7672a3e20d337i.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sba7bec184d3c4edb8344d6536d83a1244.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sdfba67d833b74d0f9fa4f2b7ef4d01980.jpg_960x960q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005006166607470.html",
+  },
+  {
+    id: "ali-1005006782840751",
+    name: "5 Pairs Elegant Low-Cut Socks",
+    description:
+      "Japanese-style breathable low tube socks pack for casual everyday outfits.",
+    category: "fashion",
+    price: 10.67,
+    icon: "🧦",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sc8cc07ab1b6a496883d3943571831b9eR.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S4f20076a67894c30a2687c3b6ebf901eZ.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sa236930719b742f0843abe3d3ee0d1f4v.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S507080a01c5c446aacc18ed9fdde8bc7m.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/See95da501be54352aac60f64da0ff0a1c.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S21c9f13daaca4da79fa9bfe4a48555efI.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sc8cc07ab1b6a496883d3943571831b9eR.jpg_960x960q75.jpg",
+      "https://ae01.alicdn.com/kf/S8364ba60688e4814a906dc785f510e7bH/60x60.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005006782840751.html",
+  },
+  {
+    id: "ali-1005010044137845",
+    name: "Dreamlikelin 5 Pairs Bear Print Socks",
+    description:
+      "Korean-style short ankle socks with smile-face and letter patterns.",
+    category: "fashion",
+    price: 3.11,
+    icon: "🧦",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/S7fc7330ce7f84de5bc88b67e5c25c7eaS.jpg?has_lang=1&ver=2_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S109cbe4bb9284362b6fc26f7b704bbb54.jpg?has_lang=1&ver=2_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Scb747746c9584d92b46c65be5f6a97fe1.jpg?has_lang=1&ver=2_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S5d08a0982969426380cdeb5e30c723c03.jpg?has_lang=1&ver=1_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sce6919b627224a54aedb559e66d06d13B.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S55f55142f6b24c438a986acf9aae84e8r.jpg?has_lang=1&ver=2_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S7fc7330ce7f84de5bc88b67e5c25c7eaS.jpg?has_lang=1&ver=2_960x960q75.jpg",
+      "https://ae01.alicdn.com/kf/S8364ba60688e4814a906dc785f510e7bH/60x60.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005010044137845.html",
+  },
+  {
+    id: "ali-1005006344782067",
+    name: "5 Pairs Heart Cotton Short Socks",
+    description:
+      "Cute heart-style low tube socks in black and white for everyday fashion wear.",
+    category: "fashion",
+    price: 2.89,
+    icon: "🧦",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/S19488c6a08d744808a441d4c76f7ecc1U.jpg?has_lang=1&ver=2_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sca5e6a6ce33543e2b19af7191b6ff536f.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sd5112ea1d74e4a7aa050f85c1f6e51c27.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S6a9d9666f6804efda448fcf63f6ba27bJ.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sd77e7441d9634226a8feba7c1c77cc9fu.jpg?has_lang=1&ver=2_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S2b075c7478c74892972c7c8c14480d38Z.jpg?has_lang=1&ver=2_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S2b075c7478c74892972c7c8c14480d38Z.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S0618b7b893dc4cd3abc946b2963c4bca0.jpg_220x220q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005006344782067.html",
+  },
 ];
 
 const categories = [
@@ -377,7 +476,6 @@ const categories = [
   { id: "toys", label: "Toys", icon: "🧸" },
   { id: "kitchen", label: "Kitchen", icon: "🍳" },
   { id: "fashion", label: "Fashion", icon: "👠" },
-  { id: "accessories", label: "Accessories", icon: "👜" },
 ];
 
 const USERS_STORAGE_KEY = "mermy-shop-users";
