@@ -397,7 +397,6 @@ function initShop() {
 
     const formValues = new FormData(checkoutForm);
     const name = String(formValues.get("name") || "").trim();
-    const email = String(formValues.get("email") || "").trim();
     const address = String(formValues.get("address") || "").trim();
     const paymentMethod = String(formValues.get("paymentMethod") || "").trim();
     const message = String(formValues.get("message") || "").trim();
@@ -417,9 +416,7 @@ function initShop() {
         body: JSON.stringify({
           _subject: `New Mermy Shop Order from ${name}`,
           _captcha: "false",
-          _replyto: email,
           customer_name: name,
-          customer_email: email,
           address,
           payment_method: paymentMethod,
           message: message || "(no message)",

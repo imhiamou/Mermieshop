@@ -432,8 +432,9 @@ body {
 .checkout-dialog {
   border: 1px solid #f2bad8;
   border-radius: 12px;
-  max-width: 460px;
+  max-width: 420px;
   width: calc(100vw - 2rem);
+  max-height: 86vh;
 }
 
 .checkout-dialog::backdrop {
@@ -443,6 +444,9 @@ body {
 .checkout-dialog form {
   display: grid;
   gap: 0.6rem;
+  max-height: calc(86vh - 2rem);
+  overflow-y: auto;
+  padding-right: 0.25rem;
 }
 
 .payment-methods {
