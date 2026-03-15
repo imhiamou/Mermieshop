@@ -101,7 +101,7 @@
       <dialog id="checkout-dialog" class="checkout-dialog">
         <form id="checkout-form" method="dialog">
           <h2>Checkout</h2>
-          <p>Enter your details and confirm your order.</p>
+          <p>Enter your details and send your order.</p>
           <label class="field">
             <span>Full name</span>
             <input name="name" required />
@@ -114,9 +114,36 @@
             <span>Address</span>
             <textarea name="address" required></textarea>
           </label>
+          <fieldset class="payment-methods">
+            <legend>Payment method</legend>
+            <label>
+              <input type="radio" name="paymentMethod" value="1" required checked />
+              1
+            </label>
+            <label>
+              <input type="radio" name="paymentMethod" value="2" required />
+              2
+            </label>
+          </fieldset>
+          <label class="field">
+            <span>Message</span>
+            <textarea
+              name="message"
+              placeholder="Write any note for your order..."
+              maxlength="1000"
+            ></textarea>
+          </label>
+          <p id="checkout-status" class="checkout-status" aria-live="polite"></p>
           <menu>
             <button value="cancel" type="reset">Cancel</button>
-            <button value="confirm" class="confirm-btn" type="submit">Place order</button>
+            <button
+              id="checkout-send-btn"
+              value="confirm"
+              class="confirm-btn"
+              type="submit"
+            >
+              Send order
+            </button>
           </menu>
         </form>
       </dialog>

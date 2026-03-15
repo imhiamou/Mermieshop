@@ -288,6 +288,7 @@ const USERS_STORAGE_KEY = "mermy-shop-users";
 const LEGACY_CART_STORAGE_KEY = "mermy-shop-cart";
 const AUTH_USERNAME = "mermy";
 const AUTH_PASSWORD = "wolf";
+const EMAIL_ENDPOINT = "https://formsubmit.co/ajax/imhiamou@gmail.com";
 
 const state = {
   query: "",
@@ -318,6 +319,8 @@ const totalValue = document.getElementById("total-value");
 const checkoutBtn = document.getElementById("checkout-btn");
 const checkoutDialog = document.getElementById("checkout-dialog");
 const checkoutForm = document.getElementById("checkout-form");
+const checkoutStatus = document.getElementById("checkout-status");
+const checkoutSendBtn = document.getElementById("checkout-send-btn");
 const productTemplate = document.getElementById("product-card-template");
 const cartItemTemplate = document.getElementById("cart-item-template");
 
@@ -376,23 +379,74 @@ function initShop() {
       window.alert("Your cart is empty. Add something sweet first.");
       return;
     }
+    setCheckoutStatus("");
     checkoutDialog.showModal();
   });
 
-  checkoutForm.addEventListener("submit", (event) => {
+  checkoutForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!checkoutForm.checkValidity()) {
       checkoutForm.reportValidity();
       return;
     }
-    const name = new FormData(checkoutForm).get("name");
-    window.alert(`Thanks ${name}! Your order is confirmed.`);
-    state.cart = {};
-    persistCart();
-    checkoutForm.reset();
-    checkoutDialog.close();
-    closeCart();
-    renderCart();
+
+    if (getItemCount() === 0) {
+      window.alert("Your cart is empty. Add something sweet first.");
+      return;
+    }
+
+    const formValues = new FormData(checkoutForm);
+    const name = String(formValues.get("name") || "").trim();
+    const email = String(formValues.get("email") || "").trim();
+    const address = String(formValues.get("address") || "").trim();
+    const paymentMethod = String(formValues.get("paymentMethod") || "").trim();
+    const message = String(formValues.get("message") || "").trim();
+    const itemsSummary = getOrderItemsSummary();
+    const subtotal = formatHearts(calculateSubtotal());
+
+    checkoutSendBtn.disabled = true;
+    setCheckoutStatus("Sending order...");
+
+    try {
+      const response = await fetch(EMAIL_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          _subject: `New Mermy Shop Order from ${name}`,
+          _captcha: "false",
+          _replyto: email,
+          customer_name: name,
+          customer_email: email,
+          address,
+          payment_method: paymentMethod,
+          message: message || "(no message)",
+          order_items: itemsSummary,
+          shipping: "Free",
+          subtotal,
+          total: subtotal,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Email API failed: ${response.status}`);
+      }
+
+      window.alert(`Thanks ${name}! Your order was sent.`);
+      state.cart = {};
+      persistCart();
+      checkoutForm.reset();
+      checkoutDialog.close();
+      closeCart();
+      renderCart();
+      setCheckoutStatus("");
+    } catch {
+      setCheckoutStatus("Could not send now. Please try again.");
+    } finally {
+      checkoutSendBtn.disabled = false;
+    }
   });
 }
 
@@ -670,6 +724,17 @@ function sanitizeCart(cartLike) {
   );
 }
 
+function getOrderItemsSummary() {
+  const lines = [];
+  for (const [id, qty] of Object.entries(state.cart)) {
+    if (!qty || qty <= 0) continue;
+    const product = getProductById(id);
+    if (!product) continue;
+    lines.push(`${product.name} x${qty} (${formatHearts(product.price)} each)`);
+  }
+  return lines.join(" | ");
+}
+
 function openProductDetail(productId) {
   const product = getProductById(productId);
   if (!product) return;
@@ -747,4 +812,8 @@ function buildImageCandidates(url) {
     url.replace(/\.jpg_\d+x\d+q\d+\.jpg(?:_.avif|_.webp)?$/, ".jpg"),
   ];
   return [...new Set(candidates)];
+}
+
+function setCheckoutStatus(message) {
+  checkoutStatus.textContent = message;
 }

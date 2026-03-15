@@ -445,6 +445,35 @@ body {
   gap: 0.6rem;
 }
 
+.payment-methods {
+  border: 1px solid #f0bfd8;
+  border-radius: 10px;
+  padding: 0.65rem 0.8rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.payment-methods legend {
+  font-weight: 800;
+  color: var(--text-muted);
+  padding: 0 0.3rem;
+}
+
+.payment-methods label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+}
+
+.checkout-status {
+  min-height: 1.2rem;
+  margin: 0;
+  color: var(--pink-700);
+  font-weight: 700;
+}
+
 menu {
   display: flex;
   justify-content: end;
