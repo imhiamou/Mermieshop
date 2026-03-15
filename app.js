@@ -400,7 +400,7 @@ function initShop() {
     const address = String(formValues.get("address") || "").trim();
     const paymentMethod = String(formValues.get("paymentMethod") || "").trim();
     const message = String(formValues.get("message") || "").trim();
-    const itemsSummary = getOrderItemsSummary();
+    const orderData = getOrderEmailContent();
     const subtotal = formatHearts(calculateSubtotal());
 
     checkoutSendBtn.disabled = true;
@@ -416,11 +416,14 @@ function initShop() {
         body: JSON.stringify({
           _subject: `New Mermy Shop Order from ${name}`,
           _captcha: "false",
+          _template: "table",
           customer_name: name,
           address,
           payment_method: paymentMethod,
           message: message || "(no message)",
-          order_items: itemsSummary,
+          order_items: orderData.itemsSummary,
+          order_items_with_images: orderData.itemsWithImages,
+          order_images_html: orderData.itemsHtml,
           shipping: "Free",
           subtotal,
           total: subtotal,
@@ -732,6 +735,43 @@ function getOrderItemsSummary() {
   return lines.join(" | ");
 }
 
+function getOrderEmailContent() {
+  const lines = [];
+  const linesWithImages = [];
+  const htmlBlocks = [];
+
+  for (const [id, qty] of Object.entries(state.cart)) {
+    if (!qty || qty <= 0) continue;
+    const product = getProductById(id);
+    if (!product) continue;
+
+    const hearts = formatHearts(product.price);
+    const images = getProductImages(product);
+    const firstImage = images[0] || "(no image)";
+    lines.push(`${product.name} x${qty} (${hearts} each)`);
+    linesWithImages.push(
+      `${product.name} x${qty} | ${hearts} each | image: ${firstImage}`
+    );
+
+    const safeName = escapeHtml(product.name);
+    const safeHearts = escapeHtml(hearts);
+    const safeImage = escapeHtml(firstImage);
+    htmlBlocks.push(
+      `<div style="margin-bottom:12px;"><p><strong>${safeName}</strong> x${qty} (${safeHearts} each)</p><p>Image: ${safeImage}</p>${
+        firstImage !== "(no image)"
+          ? `<img src="${safeImage}" alt="${safeName}" style="max-width:220px;border-radius:8px;" />`
+          : ""
+      }</div>`
+    );
+  }
+
+  return {
+    itemsSummary: lines.join(" | "),
+    itemsWithImages: linesWithImages.join("\n"),
+    itemsHtml: htmlBlocks.join(""),
+  };
+}
+
 function openProductDetail(productId) {
   const product = getProductById(productId);
   if (!product) return;
@@ -813,4 +853,13 @@ function buildImageCandidates(url) {
 
 function setCheckoutStatus(message) {
   checkoutStatus.textContent = message;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
