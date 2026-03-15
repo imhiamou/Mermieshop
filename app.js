@@ -272,6 +272,26 @@ const products = [
     ],
     sourceUrl: "https://ar.aliexpress.com/item/1005011565321774.html",
   },
+  {
+    id: "ali-1005011801885471",
+    name: "Sanrio A7 Coil Notebook",
+    description:
+      "Kawaii cartoon notebook with 50 sheets, added to Toys category as requested.",
+    category: "toys",
+    price: 1.85,
+    icon: "🧸",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/S6e94d69221c04165b3f11f3714c5e04a0.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S36fda4fb79524e2e880f7bcdacd03a3fx.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sff709c6706744c3a8cfd5006509a1d84O.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sc57b8d6410b446c2aaf74171284936feZ.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sdff4393d6dae4182a817a551b3066a21v.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S59cbf199070e407dad0966b90b010d8bA.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S6e94d69221c04165b3f11f3714c5e04a0.jpg_960x960q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Seff1f1cec63f4dcea14e72569f9e85563.jpg_480x480q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005011801885471.html",
+  },
 ];
 
 const categories = [
