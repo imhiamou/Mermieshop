@@ -292,6 +292,82 @@ const products = [
     ],
     sourceUrl: "https://ar.aliexpress.com/item/1005011801885471.html",
   },
+  {
+    id: "ali-3256804835378724",
+    name: "Cheese Mouse Stress Relief Toy",
+    description:
+      "Fun squeeze toy styled like a mouse and cheese for stress relief and fidget play.",
+    category: "toys",
+    price: 0.99,
+    icon: "🧸",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/S37efc4df75a14398bd8f60f4f2eba699I.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S2cd610897c1c42c8a87b1b7801faf7e59.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S9267a3b280ea44acbc2b553c6fb6293cS.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S449b9f2b92f94961b8364637a5656aa3q.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Se246de65201d4a08b75461f850f69a09D.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S19a3fa444bfb475cbe1aeb88d34d28bad.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sb4b2546429ee4d1085e9d1275f22bd92Z.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S502c0ce819bc4d85aadbe014e43e8c17V.jpg_220x220q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/3256804835378724.html",
+  },
+  {
+    id: "ali-1005010299905816",
+    name: "Giant Chick Squishy Fidget Toy",
+    description:
+      "Cute slow-rising squishy toy for stress relief, sensory play, and fidget fun.",
+    category: "toys",
+    price: 0.99,
+    icon: "🐥",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sa7f38963250a4065864ec760d5da62ce2.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S498599e2d9ba4b4e8cd93a8003534456d.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sffa93f4ca0e945a49755b881aa8cb9bc0.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S6985e05b22c9473580fe04fd481b1ed22.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sa7f38963250a4065864ec760d5da62ce2.jpg_960x960q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005010299905816.html",
+  },
+  {
+    id: "ali-1005009953550760",
+    name: "Flower Sticker Pack (50PCS)",
+    description:
+      "Decorative transparent flower sticker set for journals, notebooks, and DIY fun.",
+    category: "toys",
+    price: 0.99,
+    icon: "🌸",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sd0390efb23d94d9b8ee00797c0dfd802i.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S1b6af1e407fa4e1692d84920c86623433.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sda78c623d3974de6ab1fe2e31a7d9c3fM.jpg?has_lang=1&ver=1_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S4d517881fce7410090541c3144f14888M.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sfe0a028a5ad844feb3728943db2e905ee.jpg?has_lang=1&ver=1_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S8f334db7e97d41669a198f14b355bc9fR.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sd0390efb23d94d9b8ee00797c0dfd802i.jpg_960x960q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/1005009953550760.html",
+  },
+  {
+    id: "ali-3256808122156420",
+    name: "Strawberry Rabbit Plush Toy",
+    description:
+      "Soft transform-style bunny plush toy for cuddles, gifts, and room decoration.",
+    category: "toys",
+    price: 1.74,
+    icon: "🐰",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/S88e6f5bddd6a4848b061e5a34016eafeS.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S53b9b4b168ed46a0b90cbe596186467bW.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S27f26e12788a44f682e9b332f7ebf1f16.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sc56f7255cbb34a0491849a1a4bde1955m.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sa0dffad89cec49cba018c2609c78a16a9.jpg?has_lang=1&ver=2_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S1551a1382c0445a4b7b4038c67ca9d7dr.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Se1a2cb5e3a554a139aeeb59974e7725bf.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sef0372fa71364ad18844e6d059d20a44K.jpg_220x220q75.jpg",
+    ],
+    sourceUrl: "https://ar.aliexpress.com/item/3256808122156420.html",
+  },
 ];
 
 const categories = [
