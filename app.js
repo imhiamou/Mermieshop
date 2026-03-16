@@ -481,9 +481,9 @@ const categories = [
 const USERS_STORAGE_KEY = "mermy-shop-users";
 const LEGACY_CART_STORAGE_KEY = "mermy-shop-cart";
 const AUTH_USERNAME = "mermy";
-const AUTH_PASSWORD = "wolf";
+const AUTH_SESSION_KEY = "mermy-auth";
+const AUTH_USER_KEY = "mermy-auth-user";
 const EMAIL_ENDPOINT = "https://formsubmit.co/ajax/imhiamou@gmail.com";
-const BIRTHDAY_ANIMATION_MS = 3600;
 
 const state = {
   query: "",
@@ -493,14 +493,6 @@ const state = {
   selectedProductId: null,
 };
 
-const loginScreen = document.getElementById("login-screen");
-const loginForm = document.getElementById("login-form");
-const loginUsername = document.getElementById("login-username");
-const loginPassword = document.getElementById("login-password");
-const loginError = document.getElementById("login-error");
-const loginSubmitBtn = document.getElementById("login-submit-btn");
-const birthdayOverlay = document.getElementById("birthday-overlay");
-const birthdayContinueBtn = document.getElementById("birthday-continue-btn");
 const shopApp = document.getElementById("shop-app");
 const shopHomeView = document.getElementById("shop-home-view");
 const productDetailView = document.getElementById("product-detail-view");
@@ -531,35 +523,14 @@ let shopInitialized = false;
 boot();
 
 function boot() {
-  showLockedScreen();
-  showLoginScreen();
-  bindAuthFlow();
-}
-
-function bindAuthFlow() {
-  loginForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const username = String(loginUsername.value || "").trim();
-    const password = String(loginPassword.value || "");
-
-    if (username !== AUTH_USERNAME || password !== AUTH_PASSWORD) {
-      loginError.textContent = "Invalid username or password.";
-      return;
-    }
-
-    loginSubmitBtn.disabled = true;
-    loginError.textContent = "";
-    startUserSession(AUTH_USERNAME);
-    showBirthdayOverlay();
-    await playBirthdayAnimation();
-    birthdayContinueBtn.hidden = false;
-    loginSubmitBtn.disabled = false;
-  });
-
-  birthdayContinueBtn.addEventListener("click", () => {
-    showShop();
-    initShop();
-  });
+  if (!hasAuthorizedSession()) {
+    window.location.replace("./index.html");
+    return;
+  }
+  const username = sessionStorage.getItem(AUTH_USER_KEY) || AUTH_USERNAME;
+  startUserSession(username);
+  showShop();
+  initShop();
 }
 
 function startUserSession(username) {
@@ -891,37 +862,12 @@ function formatHearts(value) {
 function showShop() {
   document.body.classList.remove("auth-locked");
   document.title = "Mermy Shop";
-  loginScreen.hidden = true;
-  birthdayOverlay.hidden = true;
-  birthdayContinueBtn.hidden = true;
   shopApp.hidden = false;
   closeProductDetail();
 }
 
-function showLockedScreen() {
-  document.body.classList.add("auth-locked");
-  document.title = "Loading";
-  loginScreen.hidden = true;
-  birthdayOverlay.hidden = true;
-  shopApp.hidden = true;
-}
-
-function showLoginScreen() {
-  document.body.classList.add("auth-locked");
-  document.title = "Login";
-  loginForm.reset();
-  loginError.textContent = "";
-  birthdayOverlay.hidden = true;
-  birthdayContinueBtn.hidden = true;
-  loginScreen.hidden = false;
-  shopApp.hidden = true;
-}
-
-function showBirthdayOverlay() {
-  loginScreen.hidden = true;
-  birthdayContinueBtn.hidden = true;
-  birthdayOverlay.hidden = false;
-  document.title = "Happy Birthday";
+function hasAuthorizedSession() {
+  return sessionStorage.getItem(AUTH_SESSION_KEY) === "ok";
 }
 
 function loadUsers() {
@@ -1090,10 +1036,4 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
-}
-
-async function playBirthdayAnimation() {
-  await new Promise((resolve) => {
-    window.setTimeout(resolve, BIRTHDAY_ANIMATION_MS);
-  });
 }

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Happy Birthday</title>
+    <meta name="description" content="Birthday animation page." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="birthday-overlay">
+      <div class="birthday-scene">
+        <p class="birthday-kicker">Celebrate!</p>
+        <h1>Happy Birthday</h1>
+        <div class="cake-stage" aria-hidden="true">
+          <div class="cake-piece cake-base"></div>
+          <div class="cake-piece cake-mid"></div>
+          <div class="cake-piece cake-top"></div>
+          <div class="cake-piece cake-icing"></div>
+          <div class="cake-piece cake-candle"></div>
+          <div class="cake-piece cake-flame"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      if (sessionStorage.getItem("mermy-auth") !== "ok") {
+        window.location.replace("./index.html");
+      } else {
+        window.setTimeout(() => {
+          window.location.replace("./shop.html");
+        }, 3600);
+      }
+    </script>
+  </body>
+</html>
