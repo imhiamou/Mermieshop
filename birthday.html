@@ -26,6 +26,9 @@
           <div class="cake-piece cake-candle"></div>
           <div class="cake-piece cake-flame"></div>
         </div>
+        <button id="birthday-continue-btn" class="birthday-continue-btn" type="button" hidden>
+          Continue
+        </button>
       </div>
     </div>
 
@@ -33,9 +36,13 @@
       if (sessionStorage.getItem("mermy-auth") !== "ok") {
         window.location.replace("./index.html");
       } else {
+        const continueBtn = document.getElementById("birthday-continue-btn");
         window.setTimeout(() => {
-          window.location.replace("./shop.html");
+          continueBtn.hidden = false;
         }, 3600);
+        continueBtn.addEventListener("click", () => {
+          window.location.replace("./shop.html");
+        });
       }
     </script>
   </body>

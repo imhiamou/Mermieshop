@@ -39,7 +39,8 @@
 
       form.addEventListener("submit", (event) => {
         event.preventDefault();
-        if (userInput.value.trim() === "mermy" && passInput.value === "wolf") {
+        const username = userInput.value.trim().toLowerCase();
+        if (username === "mermy" && passInput.value === "wolf") {
           sessionStorage.setItem("mermy-auth", "ok");
           sessionStorage.setItem("mermy-auth-user", "mermy");
           window.location.href = "./birthday.html";
