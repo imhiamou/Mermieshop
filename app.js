@@ -483,7 +483,7 @@ const LEGACY_CART_STORAGE_KEY = "mermy-shop-cart";
 const AUTH_USERNAME = "mermy";
 const AUTH_PASSWORD = "wolf";
 const EMAIL_ENDPOINT = "https://formsubmit.co/ajax/imhiamou@gmail.com";
-const BIRTHDAY_ANIMATION_MS = 2800;
+const BIRTHDAY_ANIMATION_MS = 3600;
 
 const state = {
   query: "",
