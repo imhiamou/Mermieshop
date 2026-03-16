@@ -14,6 +14,23 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body class="auth-locked">
+    <div id="login-screen" class="login-screen">
+      <form id="login-form" class="login-card" autocomplete="off">
+        <h1>Login</h1>
+        <p>Enter username and password to continue.</p>
+        <label class="field">
+          <span>Username</span>
+          <input id="login-username" name="username" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="login-password" name="password" type="password" required />
+        </label>
+        <p id="login-error" class="login-error" aria-live="polite"></p>
+        <button id="login-submit-btn" class="confirm-btn" type="submit">Enter</button>
+      </form>
+    </div>
+
     <div id="birthday-overlay" class="birthday-overlay" hidden>
       <div class="birthday-scene">
         <p class="birthday-kicker">Celebrate!</p>
@@ -26,6 +43,9 @@
           <div class="cake-piece cake-candle"></div>
           <div class="cake-piece cake-flame"></div>
         </div>
+        <button id="birthday-continue-btn" class="birthday-continue-btn" type="button" hidden>
+          Continue
+        </button>
       </div>
     </div>
 
