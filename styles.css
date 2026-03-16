@@ -84,7 +84,41 @@ body {
     radial-gradient(circle at 50% 65%, rgba(255, 255, 255, 0.24), transparent 35%),
     radial-gradient(circle at 50% 100%, rgba(90, 15, 57, 0.5), transparent 58%);
   pointer-events: none;
+  transition: transform 180ms ease-out;
 }
+
+.birthday-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.birthday-stars span {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.95);
+  animation: star-twinkle 1800ms ease-in-out infinite;
+}
+
+.birthday-stars span:nth-child(1) { top: 8%; left: 9%; animation-delay: 60ms; }
+.birthday-stars span:nth-child(2) { top: 12%; left: 20%; animation-delay: 240ms; }
+.birthday-stars span:nth-child(3) { top: 18%; left: 30%; animation-delay: 410ms; }
+.birthday-stars span:nth-child(4) { top: 10%; left: 41%; animation-delay: 620ms; }
+.birthday-stars span:nth-child(5) { top: 16%; left: 51%; animation-delay: 810ms; }
+.birthday-stars span:nth-child(6) { top: 9%; left: 62%; animation-delay: 1020ms; }
+.birthday-stars span:nth-child(7) { top: 14%; left: 72%; animation-delay: 1230ms; }
+.birthday-stars span:nth-child(8) { top: 11%; left: 82%; animation-delay: 1470ms; }
+.birthday-stars span:nth-child(9) { top: 20%; left: 89%; animation-delay: 1650ms; }
+.birthday-stars span:nth-child(10) { top: 28%; left: 13%; animation-delay: 340ms; }
+.birthday-stars span:nth-child(11) { top: 34%; left: 25%; animation-delay: 540ms; }
+.birthday-stars span:nth-child(12) { top: 30%; left: 44%; animation-delay: 730ms; }
+.birthday-stars span:nth-child(13) { top: 33%; left: 58%; animation-delay: 950ms; }
+.birthday-stars span:nth-child(14) { top: 27%; left: 75%; animation-delay: 1180ms; }
+.birthday-stars span:nth-child(15) { top: 36%; left: 86%; animation-delay: 1360ms; }
+.birthday-stars span:nth-child(16) { top: 24%; left: 67%; animation-delay: 1530ms; }
 
 .birthday-confetti {
   position: absolute;
@@ -144,6 +178,7 @@ body {
   backdrop-filter: blur(3px);
   box-shadow: 0 20px 60px rgba(76, 16, 50, 0.32);
   animation: birthday-pop 420ms ease-out both;
+  transition: transform 180ms ease-out;
 }
 
 .birthday-kicker {
@@ -324,6 +359,18 @@ body {
   100% {
     transform: translateY(125vh) rotate(420deg);
     opacity: 0.9;
+  }
+}
+
+@keyframes star-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
   }
 }
 
