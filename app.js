@@ -483,6 +483,7 @@ const LEGACY_CART_STORAGE_KEY = "mermy-shop-cart";
 const AUTH_USERNAME = "mermy";
 const AUTH_PASSWORD = "wolf";
 const EMAIL_ENDPOINT = "https://formsubmit.co/ajax/imhiamou@gmail.com";
+const BIRTHDAY_ANIMATION_MS = 2800;
 
 const state = {
   query: "",
@@ -492,6 +493,7 @@ const state = {
   selectedProductId: null,
 };
 
+const birthdayOverlay = document.getElementById("birthday-overlay");
 const shopApp = document.getElementById("shop-app");
 const shopHomeView = document.getElementById("shop-home-view");
 const productDetailView = document.getElementById("product-detail-view");
@@ -521,11 +523,12 @@ const cartItemTemplate = document.getElementById("cart-item-template");
 let shopInitialized = false;
 boot();
 
-function boot() {
+async function boot() {
   showLockedScreen();
   const username = requestAccess();
   if (username) {
     startUserSession(username);
+    await playBirthdayAnimation();
     showShop();
     initShop();
   }
@@ -1056,4 +1059,12 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+async function playBirthdayAnimation() {
+  birthdayOverlay.hidden = false;
+  await new Promise((resolve) => {
+    window.setTimeout(resolve, BIRTHDAY_ANIMATION_MS);
+  });
+  birthdayOverlay.hidden = true;
 }
