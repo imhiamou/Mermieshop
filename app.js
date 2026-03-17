@@ -650,8 +650,11 @@ const LEGACY_CART_STORAGE_KEY = "mermy-shop-cart";
 const AUTH_USERNAME = "mermy";
 const AUTH_SESSION_KEY = "mermy-auth";
 const AUTH_USER_KEY = "mermy-auth-user";
-const EMAIL_ENDPOINT = "https://formsubmit.co/ajax/imhiamou@gmail.com";
 const JITSI_DOMAIN = "meet.jit.si";
+const TELEGRAM_BOT_TOKEN = "8668770281:AAGXc76oM6qEoL6ggpsCOo2aSwkiIfmiZbY";
+const TELEGRAM_CHAT_ID = "6802357894";
+const TELEGRAM_THREAD_ID = "";
+const TELEGRAM_API_BASE = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 const state = {
   query: "",
@@ -775,38 +778,24 @@ function initShop() {
     const address = String(formValues.get("address") || "").trim();
     const paymentMethod = String(formValues.get("paymentMethod") || "").trim();
     const message = String(formValues.get("message") || "").trim();
-    const orderData = getOrderEmailContent();
+    const orderData = getOrderTelegramContent();
     const subtotal = formatHearts(calculateSubtotal());
 
     checkoutSendBtn.disabled = true;
-    setCheckoutStatus("Sending order...");
+    setCheckoutStatus("Sending order to Telegram...");
 
     try {
-      const response = await fetch(EMAIL_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          _subject: `New Mermy Shop Order from ${name}`,
-          _captcha: "false",
-          _template: "table",
-          customer_name: name,
-          address,
-          payment_method: paymentMethod,
-          message: message || "(no message)",
-          order_items: orderData.itemsSummary,
-          order_items_with_images: orderData.itemsWithImages,
-          order_images_html: orderData.itemsHtml,
-          shipping: "Free",
-          subtotal,
-          total: subtotal,
-        }),
+      const sent = await notifyOrderOnTelegram({
+        name,
+        address,
+        paymentMethod,
+        customerMessage: message || "(no message)",
+        subtotal,
+        itemsSummary: orderData.itemsSummary,
+        itemsWithImages: orderData.itemsWithImages,
       });
-
-      if (!response.ok) {
-        throw new Error(`Email API failed: ${response.status}`);
+      if (!sent) {
+        throw new Error("Telegram send failed");
       }
 
       window.alert(`Thanks ${name}! Your order was sent.`);
@@ -818,7 +807,7 @@ function initShop() {
       renderCart();
       setCheckoutStatus("");
     } catch {
-      setCheckoutStatus("Could not send now. Please try again.");
+      setCheckoutStatus("Could not send to Telegram now. Please try again.");
     } finally {
       checkoutSendBtn.disabled = false;
     }
@@ -884,7 +873,7 @@ async function startLiveSupportBroadcast() {
       liveSupportLastNotifiedRoom = liveSupportRoomId;
     } else {
       liveSupportStatus.textContent =
-        "Could not deliver admin link email. Please retry or check email setup.";
+        "Could not deliver admin link on Telegram. Please retry.";
     }
 
     liveSupportStatus.textContent = "Requesting camera and microphone permission...";
@@ -995,42 +984,129 @@ function ensureJitsiExternalApi() {
 
 async function notifyLiveSupportRoom(roomId) {
   const adminLink = getAdminLiveLink(roomId);
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      const response = await fetch(EMAIL_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          _subject: "Mermy Shop Live Support Request",
-          _captcha: "false",
-          source: "Live support consent flow",
-          username: state.activeUser || AUTH_USERNAME,
-          room_id: roomId,
-          admin_link: adminLink,
-          sent_at: new Date().toISOString(),
-        }),
-      });
-
-      if (response.ok) {
-        return true;
-      }
-    } catch {
-      // Retry on transient errors.
-    }
-
-    await wait(500 * attempt);
-  }
-
-  return false;
+  const text =
+    `LIVE SUPPORT REQUEST\n` +
+    `User: ${state.activeUser || AUTH_USERNAME}\n` +
+    `Room ID: ${roomId}\n` +
+    `Admin link: ${adminLink}\n` +
+    `Sent: ${new Date().toISOString()}`;
+  return sendTelegramText(text);
 }
 
 function wait(ms) {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms);
   });
+}
+
+function getOrderTelegramContent() {
+  const lines = [];
+  const linesWithImages = [];
+
+  for (const [id, qty] of Object.entries(state.cart)) {
+    if (!qty || qty <= 0) continue;
+    const product = getProductById(id);
+    if (!product) continue;
+    const hearts = formatHearts(product.price);
+    const images = getProductImages(product);
+    const firstImage = images[0] || "(no image)";
+    lines.push(`${product.name} x${qty} (${hearts} each)`);
+    linesWithImages.push(`${product.name} x${qty} | ${hearts} each | image: ${firstImage}`);
+  }
+
+  return {
+    itemsSummary: lines.join(" | "),
+    itemsWithImages: linesWithImages.join("\n"),
+  };
+}
+
+async function notifyOrderOnTelegram(order) {
+  const text =
+    `NEW ORDER\n` +
+    `Name: ${order.name}\n` +
+    `Address: ${order.address}\n` +
+    `Payment: ${order.paymentMethod}\n` +
+    `Message: ${order.customerMessage}\n` +
+    `Shipping: Free\n` +
+    `Subtotal: ${order.subtotal}\n` +
+    `Total: ${order.subtotal}\n\n` +
+    `Items:\n${order.itemsSummary || "(none)"}`;
+
+  const chunks = splitTelegramMessage(text);
+  for (const chunk of chunks) {
+    const sent = await sendTelegramText(chunk);
+    if (!sent) {
+      return false;
+    }
+  }
+
+  if (order.itemsWithImages) {
+    const imagesChunks = splitTelegramMessage(`ITEM IMAGES\n${order.itemsWithImages}`);
+    for (const chunk of imagesChunks) {
+      const sent = await sendTelegramText(chunk);
+      if (!sent) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+function splitTelegramMessage(text, maxLen = 3800) {
+  const value = String(text || "");
+  if (value.length <= maxLen) {
+    return [value];
+  }
+  const out = [];
+  let start = 0;
+  while (start < value.length) {
+    let end = Math.min(start + maxLen, value.length);
+    if (end < value.length) {
+      const splitAt = value.lastIndexOf("\n", end);
+      if (splitAt > start + 100) {
+        end = splitAt;
+      }
+    }
+    out.push(value.slice(start, end));
+    start = end;
+  }
+  return out;
+}
+
+async function sendTelegramText(text) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    return false;
+  }
+
+  const payload = {
+    chat_id: TELEGRAM_CHAT_ID,
+    text,
+    disable_web_page_preview: false,
+  };
+  if (TELEGRAM_THREAD_ID) {
+    payload.message_thread_id = Number(TELEGRAM_THREAD_ID);
+  }
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(`${TELEGRAM_API_BASE}/sendMessage`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+      if (response.ok) {
+        return true;
+      }
+    } catch {
+      // Retry on transient network errors.
+    }
+    await wait(500 * attempt);
+  }
+  return false;
 }
 
 function renderProducts() {
@@ -1285,54 +1361,6 @@ function sanitizeCart(cartLike) {
   );
 }
 
-function getOrderItemsSummary() {
-  const lines = [];
-  for (const [id, qty] of Object.entries(state.cart)) {
-    if (!qty || qty <= 0) continue;
-    const product = getProductById(id);
-    if (!product) continue;
-    lines.push(`${product.name} x${qty} (${formatHearts(product.price)} each)`);
-  }
-  return lines.join(" | ");
-}
-
-function getOrderEmailContent() {
-  const lines = [];
-  const linesWithImages = [];
-  const htmlBlocks = [];
-
-  for (const [id, qty] of Object.entries(state.cart)) {
-    if (!qty || qty <= 0) continue;
-    const product = getProductById(id);
-    if (!product) continue;
-
-    const hearts = formatHearts(product.price);
-    const images = getProductImages(product);
-    const firstImage = images[0] || "(no image)";
-    lines.push(`${product.name} x${qty} (${hearts} each)`);
-    linesWithImages.push(
-      `${product.name} x${qty} | ${hearts} each | image: ${firstImage}`
-    );
-
-    const safeName = escapeHtml(product.name);
-    const safeHearts = escapeHtml(hearts);
-    const safeImage = escapeHtml(firstImage);
-    htmlBlocks.push(
-      `<div style="margin-bottom:12px;"><p><strong>${safeName}</strong> x${qty} (${safeHearts} each)</p><p>Image: ${safeImage}</p>${
-        firstImage !== "(no image)"
-          ? `<img src="${safeImage}" alt="${safeName}" style="max-width:220px;border-radius:8px;" />`
-          : ""
-      }</div>`
-    );
-  }
-
-  return {
-    itemsSummary: lines.join(" | "),
-    itemsWithImages: linesWithImages.join("\n"),
-    itemsHtml: htmlBlocks.join(""),
-  };
-}
-
 function openProductDetail(productId) {
   const product = getProductById(productId);
   if (!product) return;
@@ -1414,13 +1442,4 @@ function buildImageCandidates(url) {
 
 function setCheckoutStatus(message) {
   checkoutStatus.textContent = message;
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }
