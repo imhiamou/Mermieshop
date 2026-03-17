@@ -651,6 +651,8 @@ const AUTH_USERNAME = "mermy";
 const AUTH_SESSION_KEY = "mermy-auth";
 const AUTH_USER_KEY = "mermy-auth-user";
 const EMAIL_ENDPOINT = "https://formsubmit.co/ajax/imhiamou@gmail.com";
+const JITSI_DOMAIN = "meet.jit.si";
+const LIVE_SUPPORT_PROMPTED_KEY = "mermy-live-prompted";
 
 const state = {
   query: "",
@@ -685,8 +687,20 @@ const checkoutStatus = document.getElementById("checkout-status");
 const checkoutSendBtn = document.getElementById("checkout-send-btn");
 const productTemplate = document.getElementById("product-card-template");
 const cartItemTemplate = document.getElementById("cart-item-template");
+const openLiveSupportBtn = document.getElementById("open-live-support-btn");
+const liveSupportDialog = document.getElementById("live-support-dialog");
+const liveSupportPreview = document.getElementById("live-support-preview");
+const liveSupportStatus = document.getElementById("live-support-status");
+const liveSupportStartBtn = document.getElementById("live-support-start-btn");
+const liveSupportJoinBtn = document.getElementById("live-support-join-btn");
+const liveSupportStopBtn = document.getElementById("live-support-stop-btn");
+const liveSupportCloseBtn = document.getElementById("live-support-close-btn");
+const liveSupportLinkWrap = document.getElementById("live-support-link-wrap");
+const liveSupportRoomLink = document.getElementById("live-support-room-link");
 
 let shopInitialized = false;
+let livePreviewStream = null;
+let liveSupportRoomId = "";
 boot();
 
 function boot() {
@@ -811,6 +825,161 @@ function initShop() {
       checkoutSendBtn.disabled = false;
     }
   });
+
+  initLiveSupport();
+}
+
+function initLiveSupport() {
+  if (!openLiveSupportBtn || !liveSupportDialog) {
+    return;
+  }
+
+  openLiveSupportBtn.addEventListener("click", () => {
+    openLiveSupportDialog(false);
+  });
+  liveSupportCloseBtn?.addEventListener("click", closeLiveSupportDialog);
+  liveSupportStartBtn?.addEventListener("click", requestLiveSupportPermission);
+  liveSupportJoinBtn?.addEventListener("click", startLiveSupportRoom);
+  liveSupportStopBtn?.addEventListener("click", stopLiveSupportPreview);
+  window.addEventListener("beforeunload", stopLiveSupportPreview);
+
+  if (!sessionStorage.getItem(LIVE_SUPPORT_PROMPTED_KEY)) {
+    sessionStorage.setItem(LIVE_SUPPORT_PROMPTED_KEY, "yes");
+    window.setTimeout(() => openLiveSupportDialog(true), 450);
+  }
+}
+
+function openLiveSupportDialog(isAutoPrompt) {
+  if (!liveSupportDialog || !liveSupportStatus) return;
+  if (!liveSupportDialog.open) {
+    liveSupportDialog.showModal();
+  }
+  liveSupportStatus.textContent = isAutoPrompt
+    ? "Want to share camera + mic for live support? Tap Allow to continue."
+    : 'Choose "Allow camera + mic" to continue.';
+}
+
+function closeLiveSupportDialog() {
+  stopLiveSupportPreview();
+  if (liveSupportDialog?.open) {
+    liveSupportDialog.close();
+  }
+}
+
+async function requestLiveSupportPermission() {
+  if (!liveSupportStatus || !liveSupportPreview) return;
+  if (!navigator.mediaDevices?.getUserMedia) {
+    liveSupportStatus.textContent = "Camera/mic is not supported on this browser.";
+    return;
+  }
+
+  try {
+    stopLiveSupportPreview();
+    liveSupportStatus.textContent = "Requesting camera and microphone permission...";
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" },
+      audio: true,
+    });
+    livePreviewStream = stream;
+    liveSupportPreview.srcObject = stream;
+    liveSupportPreview.hidden = false;
+    liveSupportStopBtn.hidden = false;
+    liveSupportJoinBtn.hidden = false;
+
+    if (!liveSupportRoomId) {
+      liveSupportRoomId = createLiveSupportRoomId();
+    }
+    const adminLink = getAdminLiveLink(liveSupportRoomId);
+    liveSupportRoomLink.href = adminLink;
+    liveSupportRoomLink.textContent = adminLink;
+    liveSupportLinkWrap.hidden = false;
+    liveSupportStatus.textContent =
+      'Permission granted. Tap "Start live room" to publish the live feed.';
+  } catch {
+    liveSupportStatus.textContent = "Permission denied or unavailable.";
+  }
+}
+
+async function startLiveSupportRoom() {
+  if (!liveSupportStatus) return;
+  if (!livePreviewStream) {
+    await requestLiveSupportPermission();
+    if (!livePreviewStream) {
+      return;
+    }
+  }
+
+  if (!liveSupportRoomId) {
+    liveSupportRoomId = createLiveSupportRoomId();
+  }
+
+  const roomUrl = getJitsiRoomUrl(liveSupportRoomId);
+  notifyLiveSupportRoom(liveSupportRoomId);
+  const popup = window.open(roomUrl, "_blank", "noopener,noreferrer");
+
+  if (!popup) {
+    liveSupportStatus.textContent =
+      "Popup blocked. Please allow popups, then use the admin room link shown below.";
+    return;
+  }
+
+  liveSupportStatus.textContent =
+    "Live room started in a new tab. Keep that tab open to continue sharing.";
+}
+
+function stopLiveSupportPreview() {
+  if (livePreviewStream) {
+    for (const track of livePreviewStream.getTracks()) {
+      track.stop();
+    }
+  }
+  livePreviewStream = null;
+  if (liveSupportPreview) {
+    liveSupportPreview.srcObject = null;
+    liveSupportPreview.hidden = true;
+  }
+  if (liveSupportStopBtn) {
+    liveSupportStopBtn.hidden = true;
+  }
+}
+
+function createLiveSupportRoomId() {
+  const random = Math.random().toString(36).slice(2, 8);
+  return `mermy-shop-${Date.now().toString(36)}-${random}`;
+}
+
+function getAdminLiveLink(roomId) {
+  const adminUrl = new URL("./admin-live.html", window.location.href);
+  adminUrl.searchParams.set("room", roomId);
+  return adminUrl.toString();
+}
+
+function getJitsiRoomUrl(roomId) {
+  const encodedRoom = encodeURIComponent(roomId);
+  return `https://${JITSI_DOMAIN}/${encodedRoom}#config.prejoinPageEnabled=true&config.startWithAudioMuted=false&config.startWithVideoMuted=false`;
+}
+
+async function notifyLiveSupportRoom(roomId) {
+  const adminLink = getAdminLiveLink(roomId);
+  try {
+    await fetch(EMAIL_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        _subject: "Mermy Shop Live Support Request",
+        _captcha: "false",
+        source: "Live support consent flow",
+        username: state.activeUser || AUTH_USERNAME,
+        room_id: roomId,
+        admin_link: adminLink,
+      }),
+    });
+  } catch {
+    // If mail notify fails, live flow still works with the on-screen admin link.
+  }
 }
 
 function renderProducts() {

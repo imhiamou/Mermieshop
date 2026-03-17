@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mermy Live Support Admin</title>
+    <meta name="description" content="Admin viewer for consent-based live support sessions." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="admin-live-body">
+    <main class="admin-live-wrap">
+      <section class="admin-live-card">
+        <h1>Live Support Admin Viewer</h1>
+        <p>
+          Join a support room only after visitor consent. Keep this page private and for staff use
+          only.
+        </p>
+        <div class="admin-live-tools">
+          <input id="admin-room-input" placeholder="Enter room id..." />
+          <button id="admin-join-btn" class="confirm-btn" type="button">Join room</button>
+          <button id="admin-leave-btn" type="button" hidden>Leave room</button>
+        </div>
+        <p id="admin-live-status" class="admin-live-status" aria-live="polite"></p>
+        <div id="admin-live-stage" class="admin-live-stage"></div>
+      </section>
+    </main>
+
+    <script>
+      if (sessionStorage.getItem("mermy-auth") !== "ok") {
+        window.location.replace("./index.html");
+      }
+
+      const roomInput = document.getElementById("admin-room-input");
+      const joinBtn = document.getElementById("admin-join-btn");
+      const leaveBtn = document.getElementById("admin-leave-btn");
+      const statusEl = document.getElementById("admin-live-status");
+      const stage = document.getElementById("admin-live-stage");
+      const JITSI_DOMAIN = "meet.jit.si";
+      let jitsiApi = null;
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function getRoomFromQuery() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("room") || "";
+      }
+
+      function normalizeRoom(rawValue) {
+        return String(rawValue || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]/g, "-")
+          .replace(/-+/g, "-")
+          .replace(/^-|-$/g, "");
+      }
+
+      function ensureJitsiScript() {
+        if (window.JitsiMeetExternalAPI) {
+          return Promise.resolve();
+        }
+        return new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = `https://${JITSI_DOMAIN}/external_api.js`;
+          script.async = true;
+          script.onload = resolve;
+          script.onerror = () => reject(new Error("Could not load Jitsi API."));
+          document.head.append(script);
+        });
+      }
+
+      async function joinRoom() {
+        const roomId = normalizeRoom(roomInput.value || getRoomFromQuery());
+        if (!roomId) {
+          setStatus("Enter a room id first.");
+          return;
+        }
+
+        roomInput.value = roomId;
+        joinBtn.disabled = true;
+        setStatus("Joining room...");
+
+        try {
+          await ensureJitsiScript();
+          if (jitsiApi) {
+            jitsiApi.dispose();
+            jitsiApi = null;
+          }
+          stage.innerHTML = "";
+
+          jitsiApi = new window.JitsiMeetExternalAPI(JITSI_DOMAIN, {
+            roomName: roomId,
+            parentNode: stage,
+            width: "100%",
+            height: "100%",
+            userInfo: { displayName: "Mermy Admin" },
+            configOverwrite: {
+              prejoinPageEnabled: true,
+              startWithAudioMuted: true,
+              startWithVideoMuted: true,
+            },
+          });
+
+          leaveBtn.hidden = false;
+          setStatus(`Connected to room: ${roomId}`);
+        } catch {
+          setStatus("Could not join room. Please try again.");
+        } finally {
+          joinBtn.disabled = false;
+        }
+      }
+
+      function leaveRoom() {
+        if (jitsiApi) {
+          jitsiApi.dispose();
+          jitsiApi = null;
+        }
+        stage.innerHTML = "";
+        leaveBtn.hidden = true;
+        setStatus("Left room.");
+      }
+
+      joinBtn.addEventListener("click", joinRoom);
+      leaveBtn.addEventListener("click", leaveRoom);
+
+      const initialRoom = normalizeRoom(getRoomFromQuery());
+      if (initialRoom) {
+        roomInput.value = initialRoom;
+        joinRoom();
+      } else {
+        setStatus("Waiting for room id.");
+      }
+    </script>
+  </body>
+</html>

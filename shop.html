@@ -24,6 +24,9 @@
           <nav class="header-nav">
             <a href="#products">Shop</a>
             <a href="#about">About</a>
+            <button id="open-live-support-btn" class="live-support-btn" type="button">
+              Live Support
+            </button>
             <button
               id="open-cart-btn"
               class="cart-btn"
@@ -141,6 +144,41 @@
             </button>
           </menu>
         </form>
+      </dialog>
+
+      <dialog id="live-support-dialog" class="live-support-dialog">
+        <section class="live-support-content">
+          <h2>Live Camera & Mic Consent</h2>
+          <p>
+            If you agree, your camera and microphone will be shared in a live support room. You
+            can stop anytime.
+          </p>
+          <video
+            id="live-support-preview"
+            class="live-support-preview"
+            autoplay
+            playsinline
+            muted
+            hidden
+          ></video>
+          <p id="live-support-status" class="live-support-status" aria-live="polite">
+            Choose "Allow camera + mic" to continue.
+          </p>
+          <p class="live-support-link-wrap" id="live-support-link-wrap" hidden>
+            Admin room link:
+            <a id="live-support-room-link" target="_blank" rel="noopener noreferrer"></a>
+          </p>
+          <menu>
+            <button id="live-support-close-btn" type="button">Close</button>
+            <button id="live-support-stop-btn" type="button" hidden>Stop preview</button>
+            <button id="live-support-start-btn" class="confirm-btn" type="button">
+              Allow camera + mic
+            </button>
+            <button id="live-support-join-btn" class="confirm-btn" type="button" hidden>
+              Start live room
+            </button>
+          </menu>
+        </section>
       </dialog>
     </div>
 
