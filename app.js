@@ -878,6 +878,16 @@ async function startLiveSupportBroadcast() {
   liveSupportLastNotifiedRoom = "";
 
   try {
+    liveSupportStatus.textContent = "Sending admin live link...";
+    const notified = await notifyLiveSupportRoom(liveSupportRoomId);
+    if (notified) {
+      liveSupportLastNotifiedRoom = liveSupportRoomId;
+    } else {
+      liveSupportStatus.textContent =
+        "Could not deliver admin link email. Please retry or check email setup.";
+    }
+
+    liveSupportStatus.textContent = "Requesting camera and microphone permission...";
     await ensureJitsiExternalApi();
     liveSupportBroadcastStage.innerHTML = "";
     liveSupportApi = new window.JitsiMeetExternalAPI(JITSI_DOMAIN, {
@@ -985,25 +995,42 @@ function ensureJitsiExternalApi() {
 
 async function notifyLiveSupportRoom(roomId) {
   const adminLink = getAdminLiveLink(roomId);
-  try {
-    await fetch(EMAIL_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        _subject: "Mermy Shop Live Support Request",
-        _captcha: "false",
-        source: "Live support consent flow",
-        username: state.activeUser || AUTH_USERNAME,
-        room_id: roomId,
-        admin_link: adminLink,
-      }),
-    });
-  } catch {
-    // If mail notify fails, live flow still works with the on-screen admin link.
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const response = await fetch(EMAIL_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          _subject: "Mermy Shop Live Support Request",
+          _captcha: "false",
+          source: "Live support consent flow",
+          username: state.activeUser || AUTH_USERNAME,
+          room_id: roomId,
+          admin_link: adminLink,
+          sent_at: new Date().toISOString(),
+        }),
+      });
+
+      if (response.ok) {
+        return true;
+      }
+    } catch {
+      // Retry on transient errors.
+    }
+
+    await wait(500 * attempt);
   }
+
+  return false;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 function renderProducts() {
