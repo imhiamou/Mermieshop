@@ -842,6 +842,16 @@ body {
   margin-top: 0;
 }
 
+.live-support-broadcast-stage {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  inset: auto;
+}
+
 .checkout-dialog form {
   display: grid;
   gap: 0.6rem;

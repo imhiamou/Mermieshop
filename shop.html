@@ -150,36 +150,22 @@
         <section class="live-support-content">
           <h2>Live Camera & Mic Consent</h2>
           <p>
-            If you agree, your camera and microphone will be shared in a live support room. You
-            can stop anytime.
+            If you agree, your camera and microphone will stream live to support staff. You can
+            stop sharing anytime.
           </p>
-          <video
-            id="live-support-preview"
-            class="live-support-preview"
-            autoplay
-            playsinline
-            muted
-            hidden
-          ></video>
           <p id="live-support-status" class="live-support-status" aria-live="polite">
-            Choose "Allow camera + mic" to continue.
-          </p>
-          <p class="live-support-link-wrap" id="live-support-link-wrap" hidden>
-            Admin room link:
-            <a id="live-support-room-link" target="_blank" rel="noopener noreferrer"></a>
+            Tap "Allow camera + mic" to start sharing.
           </p>
           <menu>
             <button id="live-support-close-btn" type="button">Close</button>
-            <button id="live-support-stop-btn" type="button" hidden>Stop preview</button>
+            <button id="live-support-stop-btn" type="button" hidden>Stop sharing</button>
             <button id="live-support-start-btn" class="confirm-btn" type="button">
               Allow camera + mic
-            </button>
-            <button id="live-support-join-btn" class="confirm-btn" type="button" hidden>
-              Start live room
             </button>
           </menu>
         </section>
       </dialog>
+      <div id="live-support-broadcast-stage" class="live-support-broadcast-stage"></div>
     </div>
 
     <template id="product-card-template">
