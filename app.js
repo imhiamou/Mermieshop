@@ -1004,8 +1004,12 @@ async function startLiveSupportBroadcast() {
     }
 
     startCallingAdminLoop();
-    liveSupportStopBtn.hidden = false;
-    liveSupportStartBtn.hidden = true;
+    if (liveSupportStopBtn) {
+      liveSupportStopBtn.hidden = false;
+    }
+    if (liveSupportStartBtn) {
+      liveSupportStartBtn.hidden = true;
+    }
   } catch (error) {
     if (error?.name === "NotAllowedError") {
       liveSupportStatus.textContent = "Camera/mic permission was denied.";
