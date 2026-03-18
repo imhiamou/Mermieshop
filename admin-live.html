@@ -28,7 +28,14 @@
         </div>
         <p id="admin-live-status" class="admin-live-status" aria-live="polite"></p>
         <div class="admin-live-stage">
-          <video id="admin-live-video" class="admin-live-video" autoplay playsinline controls></video>
+          <video
+            id="admin-live-video"
+            class="admin-live-video"
+            autoplay
+            playsinline
+            controls
+            muted
+          ></video>
         </div>
       </section>
     </main>
@@ -44,6 +51,8 @@
       let signalChannel = null;
       let pendingVisitorCandidates = [];
       let activeRoom = "";
+      let answerRepeatTimer = null;
+      let lastAnswerSdp = "";
 
       function setStatus(message) {
         statusEl.textContent = message;
@@ -111,12 +120,21 @@
         const pc = new RTCPeerConnection({
           iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
         });
+        pc.addTransceiver("video", { direction: "recvonly" });
+        pc.addTransceiver("audio", { direction: "recvonly" });
         pc.ontrack = (event) => {
-          const [stream] = event.streams;
-          if (stream) {
-            videoEl.srcObject = stream;
-            setStatus("Live feed received.");
+          const streamFromEvent = event.streams && event.streams[0];
+          if (streamFromEvent) {
+            videoEl.srcObject = streamFromEvent;
+          } else {
+            const fallbackStream = videoEl.srcObject || new MediaStream();
+            fallbackStream.addTrack(event.track);
+            videoEl.srcObject = fallbackStream;
           }
+          videoEl
+            .play()
+            .then(() => setStatus("Live feed received."))
+            .catch(() => setStatus("Feed received. Press play to view."));
         };
         pc.onicecandidate = (event) => {
           if (!event.candidate) return;
@@ -128,9 +146,20 @@
         };
         pc.onconnectionstatechange = () => {
           if (pc.connectionState === "connected") {
+            stopAnswerRepeat();
             setStatus("Connected to visitor stream.");
+          } else if (pc.connectionState === "connecting") {
+            setStatus("Connecting to visitor stream...");
           } else if (pc.connectionState === "failed") {
             setStatus("Connection failed. Rejoin room.");
+          }
+        };
+        pc.oniceconnectionstatechange = () => {
+          const iceState = pc.iceConnectionState;
+          if (iceState === "connected" || iceState === "completed") {
+            setStatus("ICE connected. Waiting for media...");
+          } else if (iceState === "failed") {
+            setStatus("ICE failed. Rejoin room.");
           }
         };
         return pc;
@@ -157,11 +186,13 @@
           pendingVisitorCandidates = [];
           const answer = await peer.createAnswer();
           await peer.setLocalDescription(answer);
+          lastAnswerSdp = answer.sdp || "";
           postSignal({
             type: "admin-answer",
             roomId: activeRoom,
-            sdp: answer.sdp,
+            sdp: lastAnswerSdp,
           });
+          startAnswerRepeat(activeRoom);
           setStatus("Answer sent. Waiting for live tracks...");
           return;
         }
@@ -177,6 +208,7 @@
       }
 
       function leaveRoom(isSilent = false) {
+        stopAnswerRepeat();
         if (signalChannel) {
           signalChannel.close();
           signalChannel = null;
@@ -186,11 +218,35 @@
           peer = null;
         }
         activeRoom = "";
+        lastAnswerSdp = "";
         pendingVisitorCandidates = [];
         videoEl.srcObject = null;
         leaveBtn.hidden = true;
         if (!isSilent) {
           setStatus("Left room.");
+        }
+      }
+
+      function startAnswerRepeat(roomId) {
+        stopAnswerRepeat();
+        answerRepeatTimer = window.setInterval(() => {
+          if (!peer || !signalChannel || !lastAnswerSdp || !activeRoom) return;
+          if (peer.connectionState === "connected") {
+            stopAnswerRepeat();
+            return;
+          }
+          postSignal({
+            type: "admin-answer",
+            roomId,
+            sdp: lastAnswerSdp,
+          });
+        }, 2500);
+      }
+
+      function stopAnswerRepeat() {
+        if (answerRepeatTimer) {
+          window.clearInterval(answerRepeatTimer);
+          answerRepeatTimer = null;
         }
       }
 

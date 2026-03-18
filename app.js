@@ -988,6 +988,7 @@ function setupLiveDemoVisitorConnection(roomId, stream) {
         type: "answer",
         sdp: payload.sdp,
       });
+      liveSupportStatus.textContent = "Admin answered. Finalizing connection...";
       for (const candidate of livePendingAdminCandidates) {
         await liveVisitorPeer.addIceCandidate(candidate).catch(() => {});
       }
@@ -1031,6 +1032,16 @@ function setupLiveDemoVisitorConnection(roomId, stream) {
       liveSupportStatus.textContent = "Admin connected. Live stream is active.";
     } else if (stateName === "failed") {
       liveSupportStatus.textContent = "Connection failed. Restart sharing.";
+    } else if (stateName === "connecting") {
+      liveSupportStatus.textContent = "Connecting to admin...";
+    }
+  };
+  liveVisitorPeer.oniceconnectionstatechange = () => {
+    const iceState = liveVisitorPeer.iceConnectionState;
+    if (iceState === "connected" || iceState === "completed") {
+      liveSupportStatus.textContent = "ICE connected. Waiting for admin video playback.";
+    } else if (iceState === "failed") {
+      liveSupportStatus.textContent = "ICE failed. Restart sharing.";
     }
   };
 
