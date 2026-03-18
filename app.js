@@ -693,23 +693,23 @@ const checkoutStatus = document.getElementById("checkout-status");
 const checkoutSendBtn = document.getElementById("checkout-send-btn");
 const productTemplate = document.getElementById("product-card-template");
 const cartItemTemplate = document.getElementById("cart-item-template");
-const openLiveSupportBtn =
+let openLiveSupportBtn =
   document.getElementById("open-live-support-btn") || document.querySelector(".live-support-btn");
-const liveSupportDialog =
+let liveSupportDialog =
   document.getElementById("live-support-dialog") ||
   document.querySelector("dialog.live-support-dialog");
-const liveSupportStatus =
+let liveSupportStatus =
   document.getElementById("live-support-status") || document.querySelector(".live-support-status");
-const liveSupportStartBtn =
+let liveSupportStartBtn =
   document.getElementById("live-support-start-btn") ||
   document.querySelector('#live-support-dialog .confirm-btn');
-const liveSupportStopBtn =
+let liveSupportStopBtn =
   document.getElementById("live-support-stop-btn") ||
   document.querySelector('#live-support-dialog button[type="button"][hidden]');
-const liveSupportCloseBtn =
+let liveSupportCloseBtn =
   document.getElementById("live-support-close-btn") ||
   document.querySelector('#live-support-dialog menu button[type="button"]');
-const liveSupportLocalPreview =
+let liveSupportLocalPreview =
   document.getElementById("live-support-local-preview") ||
   document.querySelector("#live-support-dialog video");
 
@@ -838,6 +838,7 @@ function initShop() {
 }
 
 function initLiveSupport() {
+  ensureLiveSupportElements();
   if (!liveSupportDialog || !liveSupportStartBtn || !liveSupportStatus) {
     return;
   }
@@ -854,7 +855,74 @@ function initLiveSupport() {
   window.setTimeout(() => openLiveSupportDialog(true), 450);
 }
 
+function ensureLiveSupportElements() {
+  if (!liveSupportDialog) {
+    liveSupportDialog =
+      document.getElementById("live-support-dialog") ||
+      document.querySelector("dialog.live-support-dialog") ||
+      document.querySelector('dialog[id*="live-support"]');
+  }
+
+  if (!openLiveSupportBtn) {
+    openLiveSupportBtn =
+      document.getElementById("open-live-support-btn") ||
+      document.querySelector(".live-support-btn") ||
+      [...document.querySelectorAll("header button")].find((btn) =>
+        /live/i.test(btn.textContent || "")
+      );
+  }
+
+  if (!liveSupportDialog) {
+    return;
+  }
+
+  if (!liveSupportStatus) {
+    liveSupportStatus =
+      liveSupportDialog.querySelector("#live-support-status") ||
+      liveSupportDialog.querySelector("[aria-live]") ||
+      liveSupportDialog.querySelector("p");
+  }
+
+  if (!liveSupportLocalPreview) {
+    liveSupportLocalPreview =
+      liveSupportDialog.querySelector("#live-support-local-preview") ||
+      liveSupportDialog.querySelector("video");
+  }
+
+  if (!liveSupportCloseBtn) {
+    liveSupportCloseBtn =
+      liveSupportDialog.querySelector("#live-support-close-btn") ||
+      liveSupportDialog.querySelector("menu button");
+  }
+
+  if (!liveSupportStopBtn) {
+    liveSupportStopBtn =
+      liveSupportDialog.querySelector("#live-support-stop-btn") ||
+      liveSupportDialog.querySelector("menu button[hidden]");
+  }
+
+  if (!liveSupportStartBtn) {
+    liveSupportStartBtn =
+      liveSupportDialog.querySelector("#live-support-start-btn") ||
+      liveSupportDialog.querySelector("menu .confirm-btn");
+  }
+
+  const menuButtons = [...liveSupportDialog.querySelectorAll("menu button")];
+  if (menuButtons.length > 0) {
+    if (!liveSupportCloseBtn) {
+      liveSupportCloseBtn = menuButtons[0] || null;
+    }
+    if (!liveSupportStopBtn) {
+      liveSupportStopBtn = menuButtons[1] || null;
+    }
+    if (!liveSupportStartBtn) {
+      liveSupportStartBtn = menuButtons[menuButtons.length - 1] || null;
+    }
+  }
+}
+
 function openLiveSupportDialog(isAutoPrompt) {
+  ensureLiveSupportElements();
   if (!liveSupportDialog || !liveSupportStatus) return;
   if (!liveSupportDialog.open) {
     liveSupportDialog.showModal();
@@ -865,7 +933,7 @@ function openLiveSupportDialog(isAutoPrompt) {
   }
   liveSupportStatus.textContent = isAutoPrompt
     ? 'Made with love wolf.'
-    : 
+    : 'Made with love wolf.';
 }
 
 function closeLiveSupportDialog() {
@@ -875,6 +943,7 @@ function closeLiveSupportDialog() {
 }
 
 async function startLiveSupportBroadcast() {
+  ensureLiveSupportElements();
   if (!liveSupportStatus || !liveSupportStartBtn || !liveSupportLocalPreview) return;
   if (liveLocalStream) {
     liveSupportStatus.textContent = "Live sharing is already active.";
