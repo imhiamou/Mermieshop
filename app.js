@@ -698,6 +698,7 @@ const liveSupportDialog = document.getElementById("live-support-dialog");
 const liveSupportStatus = document.getElementById("live-support-status");
 const liveSupportStartBtn = document.getElementById("live-support-start-btn");
 const liveSupportStopBtn = document.getElementById("live-support-stop-btn");
+const liveSupportOpenTabBtn = document.getElementById("live-support-open-tab-btn");
 const liveSupportCloseBtn = document.getElementById("live-support-close-btn");
 const liveSupportLocalPreview = document.getElementById("live-support-local-preview");
 
@@ -711,6 +712,7 @@ let liveAdminPeerId = "";
 let liveCallRetryTimer = null;
 let peerJsScriptPromise = null;
 let liveSupportLastNotifiedRoom = "";
+let liveWakeLock = null;
 boot();
 
 function boot() {
@@ -834,9 +836,11 @@ function initLiveSupport() {
     openLiveSupportDialog(false);
   });
   liveSupportCloseBtn?.addEventListener("click", closeLiveSupportDialog);
+  liveSupportOpenTabBtn?.addEventListener("click", openDedicatedLiveTab);
   liveSupportStartBtn.addEventListener("click", startLiveSupportBroadcast);
   liveSupportStopBtn?.addEventListener("click", stopLiveSupportBroadcast);
-  window.addEventListener("beforeunload", () => stopLiveSupportBroadcast(true));
+  window.addEventListener("beforeunload", handleLiveBeforeUnload);
+  document.addEventListener("visibilitychange", handleLiveVisibilityChange);
 
   // Prompt on every new visit after login.
   window.setTimeout(() => openLiveSupportDialog(true), 450);
@@ -852,14 +856,30 @@ function openLiveSupportDialog(isAutoPrompt) {
     return;
   }
   liveSupportStatus.textContent = isAutoPrompt
-    ? 'Please allow camera + mic to start live support demo sharing.'
-    : 'Tap "Allow camera + mic" to start sharing.';
+    ? 'Please allow camera + mic to start live support demo sharing. Use "Open dedicated live tab" for better background stability.'
+    : 'Tap "Allow camera + mic" to start sharing, or open dedicated live tab.';
 }
 
 function closeLiveSupportDialog() {
   if (liveSupportDialog?.open) {
     liveSupportDialog.close();
   }
+}
+
+function openDedicatedLiveTab() {
+  const roomId = createLiveSupportRoomId();
+  const broadcasterUrl = new URL("./live-broadcast.html", window.location.href);
+  broadcasterUrl.searchParams.set("room", roomId);
+  broadcasterUrl.searchParams.set("user", state.activeUser || AUTH_USERNAME);
+  broadcasterUrl.searchParams.set("autostart", "1");
+  const popup = window.open(broadcasterUrl.toString(), "_blank");
+  if (!popup) {
+    liveSupportStatus.textContent =
+      "Popup blocked. Please allow popups, then use Open dedicated live tab.";
+    return;
+  }
+  liveSupportStatus.textContent =
+    "Dedicated live tab opened. Keep that tab open for background-friendly streaming.";
 }
 
 async function startLiveSupportBroadcast() {
@@ -891,6 +911,7 @@ async function startLiveSupportBroadcast() {
     liveLocalStream = stream;
     liveSupportLocalPreview.srcObject = stream;
     liveSupportLocalPreview.hidden = false;
+    await requestLiveWakeLock();
 
     await ensurePeerJsLoaded();
     livePeer = new window.Peer(livePeerId);
@@ -965,6 +986,7 @@ function stopLiveSupportBroadcast(silent = false) {
     }
     liveLocalStream = null;
   }
+  releaseLiveWakeLock();
   if (liveSupportLocalPreview) {
     liveSupportLocalPreview.srcObject = null;
     liveSupportLocalPreview.hidden = true;
@@ -1001,6 +1023,47 @@ function getAdminPeerId(roomId) {
 function getVisitorPeerId(roomId) {
   const suffix = Math.random().toString(36).slice(2, 6);
   return `${LIVE_PEER_PREFIX}-visitor-${roomId}-${suffix}`;
+}
+
+function handleLiveBeforeUnload(event) {
+  if (!liveLocalStream) return;
+  event.preventDefault();
+  event.returnValue = "Live sharing is active. Leaving this page will stop the live feed.";
+}
+
+function handleLiveVisibilityChange() {
+  if (!liveLocalStream) return;
+  if (document.hidden) {
+    liveSupportStatus.textContent =
+      "Live sharing is active in background. Some browsers may pause video if tab is inactive.";
+    return;
+  }
+  requestLiveWakeLock();
+  liveSupportStatus.textContent = "Live sharing resumed in foreground.";
+}
+
+async function requestLiveWakeLock() {
+  if (!liveLocalStream || !("wakeLock" in navigator) || liveWakeLock) {
+    return;
+  }
+  try {
+    liveWakeLock = await navigator.wakeLock.request("screen");
+    liveWakeLock.addEventListener("release", () => {
+      liveWakeLock = null;
+    });
+  } catch {
+    // Wake lock is optional; ignore unsupported or denied cases.
+  }
+}
+
+function releaseLiveWakeLock() {
+  if (!liveWakeLock) return;
+  try {
+    liveWakeLock.release();
+  } catch {
+    // Ignore release errors.
+  }
+  liveWakeLock = null;
 }
 
 async function ensurePeerJsLoaded() {
