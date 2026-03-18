@@ -625,13 +625,22 @@ const products = [
   },
   {
     id: "ali-1005007621523176",
-    name: "AliExpress item 1005007621523176",
+    name: "Rice Washing & Draining Basket",
     description:
-      "Imported from the shared AliExpress link. Details were partially blocked by captcha at import time.",
-    category: "fashion",
-    price: 10,
-    icon: "👠",
-    images: [],
+      "Kitchen basket for washing and draining rice, vegetables, and fruit.",
+    category: "kitchen",
+    price: 0.99,
+    icon: "🍳",
+    images: [
+      "https://ae-pic-a1.aliexpress-media.com/kf/Seb5b7cbffbd6400483722d39de3c90a82.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sfffe2ce60a4d465fa3535bc4260edb46p.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S89db6f41fe6f4e2287318625bd7e3950f.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sb144b4045919428cbfa9672f14631cbeL.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/S51dfe84d807f48c88621c855f0b1c521R.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sd889e2e6ef6943ff864706232e80504cw.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Se9acc3ad979344f9b5336c66e01ddac3T.jpg_220x220q75.jpg",
+      "https://ae-pic-a1.aliexpress-media.com/kf/Sbeb2d5be7a584dc6ad65caeffcbb2ed6I.jpg_220x220q75.jpg",
+    ],
     sourceUrl: "https://ar.aliexpress.com/item/1005007621523176.html",
   },
 ];
