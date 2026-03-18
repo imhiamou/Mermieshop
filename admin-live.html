@@ -32,10 +32,6 @@
     </main>
 
     <script>
-      if (sessionStorage.getItem("mermy-auth") !== "ok") {
-        window.location.replace("./index.html");
-      }
-
       const roomInput = document.getElementById("admin-room-input");
       const joinBtn = document.getElementById("admin-join-btn");
       const leaveBtn = document.getElementById("admin-leave-btn");
@@ -102,7 +98,7 @@
             height: "100%",
             userInfo: { displayName: "Mermy Admin" },
             configOverwrite: {
-              prejoinPageEnabled: true,
+              prejoinPageEnabled: false,
               startWithAudioMuted: true,
               startWithVideoMuted: true,
             },
