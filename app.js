@@ -848,12 +848,12 @@ function openLiveSupportDialog(isAutoPrompt) {
     liveSupportDialog.showModal();
   }
   if (liveLocalStream) {
-    liveSupportStatus.textContent = "Live sharing is active.";
+    liveSupportStatus.textContent = "test.";
     return;
   }
   liveSupportStatus.textContent = isAutoPrompt
-    ? 'Please allow camera + mic to start live support demo sharing.'
-    : 'Tap "Allow camera + mic" to start sharing.';
+    ? 'Made with love wolf.'
+    : 
 }
 
 function closeLiveSupportDialog() {
