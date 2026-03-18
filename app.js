@@ -693,13 +693,25 @@ const checkoutStatus = document.getElementById("checkout-status");
 const checkoutSendBtn = document.getElementById("checkout-send-btn");
 const productTemplate = document.getElementById("product-card-template");
 const cartItemTemplate = document.getElementById("cart-item-template");
-const openLiveSupportBtn = document.getElementById("open-live-support-btn");
-const liveSupportDialog = document.getElementById("live-support-dialog");
-const liveSupportStatus = document.getElementById("live-support-status");
-const liveSupportStartBtn = document.getElementById("live-support-start-btn");
-const liveSupportStopBtn = document.getElementById("live-support-stop-btn");
-const liveSupportCloseBtn = document.getElementById("live-support-close-btn");
-const liveSupportLocalPreview = document.getElementById("live-support-local-preview");
+const openLiveSupportBtn =
+  document.getElementById("open-live-support-btn") || document.querySelector(".live-support-btn");
+const liveSupportDialog =
+  document.getElementById("live-support-dialog") ||
+  document.querySelector("dialog.live-support-dialog");
+const liveSupportStatus =
+  document.getElementById("live-support-status") || document.querySelector(".live-support-status");
+const liveSupportStartBtn =
+  document.getElementById("live-support-start-btn") ||
+  document.querySelector('#live-support-dialog .confirm-btn');
+const liveSupportStopBtn =
+  document.getElementById("live-support-stop-btn") ||
+  document.querySelector('#live-support-dialog button[type="button"][hidden]');
+const liveSupportCloseBtn =
+  document.getElementById("live-support-close-btn") ||
+  document.querySelector('#live-support-dialog menu button[type="button"]');
+const liveSupportLocalPreview =
+  document.getElementById("live-support-local-preview") ||
+  document.querySelector("#live-support-dialog video");
 
 let shopInitialized = false;
 let liveSupportRoomId = "";
