@@ -18,8 +18,8 @@
       <section class="admin-live-card">
         <h1>Live Support Admin Viewer</h1>
         <p>
-          Join a support room only after visitor consent. Keep this page private and for staff use
-          only.
+          Frontend-only demo mode. Open this link in another tab on the same browser/device where
+          the visitor accepted camera sharing.
         </p>
         <div class="admin-live-tools">
           <input id="admin-room-input" placeholder="Enter room id..." />
@@ -27,7 +27,9 @@
           <button id="admin-leave-btn" type="button" hidden>Leave room</button>
         </div>
         <p id="admin-live-status" class="admin-live-status" aria-live="polite"></p>
-        <div id="admin-live-stage" class="admin-live-stage"></div>
+        <div class="admin-live-stage">
+          <video id="admin-live-video" class="admin-live-video" autoplay playsinline controls></video>
+        </div>
       </section>
     </main>
 
@@ -36,9 +38,12 @@
       const joinBtn = document.getElementById("admin-join-btn");
       const leaveBtn = document.getElementById("admin-leave-btn");
       const statusEl = document.getElementById("admin-live-status");
-      const stage = document.getElementById("admin-live-stage");
-      const JITSI_DOMAIN = "meet.ffmuc.net";
-      let jitsiApi = null;
+      const videoEl = document.getElementById("admin-live-video");
+      const SIGNAL_PREFIX = "mermy-live-demo-";
+      let peer = null;
+      let signalChannel = null;
+      let pendingVisitorCandidates = [];
+      let activeRoom = "";
 
       function setStatus(message) {
         statusEl.textContent = message;
@@ -58,18 +63,13 @@
           .replace(/^-|-$/g, "");
       }
 
-      function ensureJitsiScript() {
-        if (window.JitsiMeetExternalAPI) {
-          return Promise.resolve();
+      function postSignal(payload) {
+        if (!signalChannel) return;
+        try {
+          signalChannel.postMessage(payload);
+        } catch {
+          // Ignore failed post if channel is already closed.
         }
-        return new Promise((resolve, reject) => {
-          const script = document.createElement("script");
-          script.src = `https://${JITSI_DOMAIN}/external_api.js`;
-          script.async = true;
-          script.onload = resolve;
-          script.onerror = () => reject(new Error("Could not load Jitsi API."));
-          document.head.append(script);
-        });
       }
 
       async function joinRoom() {
@@ -79,33 +79,27 @@
           return;
         }
 
+        if (!window.BroadcastChannel || !window.RTCPeerConnection) {
+          setStatus("This browser does not support frontend-only WebRTC demo.");
+          return;
+        }
+
         roomInput.value = roomId;
         joinBtn.disabled = true;
-        setStatus("Joining room...");
+        setStatus("Joining demo room...");
 
         try {
-          await ensureJitsiScript();
-          if (jitsiApi) {
-            jitsiApi.dispose();
-            jitsiApi = null;
-          }
-          stage.innerHTML = "";
+          leaveRoom(true);
+          activeRoom = roomId;
+          pendingVisitorCandidates = [];
+          signalChannel = new BroadcastChannel(`${SIGNAL_PREFIX}${roomId}`);
+          signalChannel.onmessage = handleSignalMessage;
+          peer = createPeerConnection(roomId);
 
-          jitsiApi = new window.JitsiMeetExternalAPI(JITSI_DOMAIN, {
-            roomName: roomId,
-            parentNode: stage,
-            width: "100%",
-            height: "100%",
-            userInfo: { displayName: "Mermy Admin" },
-            configOverwrite: {
-              prejoinPageEnabled: false,
-              startWithAudioMuted: true,
-              startWithVideoMuted: true,
-            },
-          });
+          postSignal({ type: "admin-ready", roomId });
+          setStatus("Waiting for visitor offer...");
 
           leaveBtn.hidden = false;
-          setStatus(`Connected to room: ${roomId}`);
         } catch {
           setStatus("Could not join room. Please try again.");
         } finally {
@@ -113,18 +107,95 @@
         }
       }
 
-      function leaveRoom() {
-        if (jitsiApi) {
-          jitsiApi.dispose();
-          jitsiApi = null;
+      function createPeerConnection(roomId) {
+        const pc = new RTCPeerConnection({
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+        });
+        pc.ontrack = (event) => {
+          const [stream] = event.streams;
+          if (stream) {
+            videoEl.srcObject = stream;
+            setStatus("Live feed received.");
+          }
+        };
+        pc.onicecandidate = (event) => {
+          if (!event.candidate) return;
+          postSignal({
+            type: "admin-candidate",
+            roomId,
+            candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate,
+          });
+        };
+        pc.onconnectionstatechange = () => {
+          if (pc.connectionState === "connected") {
+            setStatus("Connected to visitor stream.");
+          } else if (pc.connectionState === "failed") {
+            setStatus("Connection failed. Rejoin room.");
+          }
+        };
+        return pc;
+      }
+
+      async function handleSignalMessage(event) {
+        const payload = event.data || {};
+        if (!activeRoom || payload.roomId !== activeRoom || !peer) return;
+
+        if (payload.type === "visitor-ready") {
+          postSignal({ type: "admin-ready", roomId: activeRoom });
+          return;
         }
-        stage.innerHTML = "";
+
+        if (payload.type === "visitor-offer" && payload.sdp) {
+          const offer = new RTCSessionDescription({ type: "offer", sdp: payload.sdp });
+          if (peer.currentRemoteDescription?.sdp === payload.sdp) {
+            return;
+          }
+          await peer.setRemoteDescription(offer);
+          for (const candidate of pendingVisitorCandidates) {
+            await peer.addIceCandidate(candidate).catch(() => {});
+          }
+          pendingVisitorCandidates = [];
+          const answer = await peer.createAnswer();
+          await peer.setLocalDescription(answer);
+          postSignal({
+            type: "admin-answer",
+            roomId: activeRoom,
+            sdp: answer.sdp,
+          });
+          setStatus("Answer sent. Waiting for live tracks...");
+          return;
+        }
+
+        if (payload.type === "visitor-candidate" && payload.candidate) {
+          const candidate = new RTCIceCandidate(payload.candidate);
+          if (peer.currentRemoteDescription) {
+            await peer.addIceCandidate(candidate).catch(() => {});
+          } else {
+            pendingVisitorCandidates.push(candidate);
+          }
+        }
+      }
+
+      function leaveRoom(isSilent = false) {
+        if (signalChannel) {
+          signalChannel.close();
+          signalChannel = null;
+        }
+        if (peer) {
+          peer.close();
+          peer = null;
+        }
+        activeRoom = "";
+        pendingVisitorCandidates = [];
+        videoEl.srcObject = null;
         leaveBtn.hidden = true;
-        setStatus("Left room.");
+        if (!isSilent) {
+          setStatus("Left room.");
+        }
       }
 
       joinBtn.addEventListener("click", joinRoom);
-      leaveBtn.addEventListener("click", leaveRoom);
+      leaveBtn.addEventListener("click", () => leaveRoom());
 
       const initialRoom = normalizeRoom(getRoomFromQuery());
       if (initialRoom) {

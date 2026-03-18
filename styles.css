@@ -842,21 +842,6 @@ body {
   margin-top: 0;
 }
 
-.live-support-broadcast-stage {
-  width: 100%;
-  min-height: 220px;
-  border: 1px solid #f1c8de;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #fcf6fa;
-}
-
-.live-support-broadcast-stage iframe {
-  width: 100%;
-  min-height: 220px;
-  border: 0;
-}
-
 .checkout-dialog form {
   display: grid;
   gap: 0.6rem;
@@ -1019,6 +1004,13 @@ body.admin-live-body {
   border-radius: 12px;
   overflow: hidden;
   background: #faf5f8;
+}
+
+.admin-live-video {
+  width: 100%;
+  min-height: 460px;
+  background: #20141a;
+  object-fit: contain;
 }
 
 @media (max-width: 660px) {

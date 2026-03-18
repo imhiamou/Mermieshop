@@ -650,7 +650,7 @@ const LEGACY_CART_STORAGE_KEY = "mermy-shop-cart";
 const AUTH_USERNAME = "mermy";
 const AUTH_SESSION_KEY = "mermy-auth";
 const AUTH_USER_KEY = "mermy-auth-user";
-const JITSI_DOMAIN = "meet.ffmuc.net";
+const LIVE_SIGNAL_CHANNEL_PREFIX = "mermy-live-demo-";
 const TELEGRAM_BOT_TOKEN = "8668770281:AAGXc76oM6qEoL6ggpsCOo2aSwkiIfmiZbY";
 const TELEGRAM_CHAT_ID = "6802357894";
 const TELEGRAM_THREAD_ID = "";
@@ -695,12 +695,16 @@ const liveSupportStatus = document.getElementById("live-support-status");
 const liveSupportStartBtn = document.getElementById("live-support-start-btn");
 const liveSupportStopBtn = document.getElementById("live-support-stop-btn");
 const liveSupportCloseBtn = document.getElementById("live-support-close-btn");
-const liveSupportBroadcastStage = document.getElementById("live-support-broadcast-stage");
+const liveSupportLocalPreview = document.getElementById("live-support-local-preview");
 
 let shopInitialized = false;
 let liveSupportRoomId = "";
-let liveSupportApi = null;
-let liveSupportScriptPromise = null;
+let liveLocalStream = null;
+let liveVisitorPeer = null;
+let liveSignalChannel = null;
+let liveOfferRepeatTimer = null;
+let liveCurrentOfferSdp = "";
+let livePendingAdminCandidates = [];
 let liveSupportLastNotifiedRoom = "";
 boot();
 
@@ -838,12 +842,12 @@ function openLiveSupportDialog(isAutoPrompt) {
   if (!liveSupportDialog.open) {
     liveSupportDialog.showModal();
   }
-  if (liveSupportApi) {
+  if (liveLocalStream) {
     liveSupportStatus.textContent = "Live sharing is active.";
     return;
   }
   liveSupportStatus.textContent = isAutoPrompt
-    ? 'Please allow camera + mic to start live support sharing.'
+    ? 'Please allow camera + mic to start live support demo sharing.'
     : 'Tap "Allow camera + mic" to start sharing.';
 }
 
@@ -854,74 +858,58 @@ function closeLiveSupportDialog() {
 }
 
 async function startLiveSupportBroadcast() {
-  if (!liveSupportStatus || !liveSupportStartBtn || !liveSupportBroadcastStage) return;
-  if (liveSupportApi) {
+  if (!liveSupportStatus || !liveSupportStartBtn || !liveSupportLocalPreview) return;
+  if (liveLocalStream) {
     liveSupportStatus.textContent = "Live sharing is already active.";
+    return;
+  }
+  if (!window.BroadcastChannel || !window.RTCPeerConnection || !navigator.mediaDevices) {
+    liveSupportStatus.textContent = "This browser does not support the frontend-only live demo.";
     return;
   }
 
   liveSupportStartBtn.disabled = true;
-  liveSupportStatus.textContent = "Requesting camera and microphone permission...";
+  liveSupportStatus.textContent =
+    "Starting live demo... browser will ask for camera/microphone permission.";
 
+  stopLiveSupportBroadcast(true);
   liveSupportRoomId = createLiveSupportRoomId();
   liveSupportLastNotifiedRoom = "";
+  livePendingAdminCandidates = [];
+  liveCurrentOfferSdp = "";
 
   try {
-    liveSupportStatus.textContent =
-      "Starting live camera... browser may ask for camera/microphone permission.";
-    await ensureJitsiExternalApi();
-    liveSupportBroadcastStage.hidden = false;
-    liveSupportBroadcastStage.setAttribute("aria-hidden", "false");
-    liveSupportBroadcastStage.innerHTML = "";
-    liveSupportApi = new window.JitsiMeetExternalAPI(JITSI_DOMAIN, {
-      roomName: liveSupportRoomId,
-      parentNode: liveSupportBroadcastStage,
-      width: "100%",
-      height: "260",
-      userInfo: {
-        displayName: `Visitor-${(state.activeUser || AUTH_USERNAME).toLowerCase()}`,
-      },
-      configOverwrite: {
-        prejoinPageEnabled: false,
-        startWithAudioMuted: false,
-        startWithVideoMuted: false,
-        disableDeepLinking: true,
-      },
-      interfaceConfigOverwrite: {
-        TOOLBAR_BUTTONS: [],
-        SHOW_JITSI_WATERMARK: false,
-        SHOW_WATERMARK_FOR_GUESTS: false,
-      },
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" },
+      audio: true,
     });
-    setIframeMediaPermissions(liveSupportBroadcastStage);
+    liveLocalStream = stream;
+    liveSupportLocalPreview.srcObject = stream;
+    liveSupportLocalPreview.hidden = false;
 
-    liveSupportApi.addListener("videoConferenceJoined", () => {
-      liveSupportStatus.textContent = "Live sharing started successfully.";
-      if (liveSupportRoomId && liveSupportLastNotifiedRoom !== liveSupportRoomId) {
-        notifyLiveSupportRoom(liveSupportRoomId).then((notified) => {
-          if (notified) {
-            liveSupportLastNotifiedRoom = liveSupportRoomId;
-          } else {
-            liveSupportStatus.textContent =
-              "Live started, but Telegram link delivery failed. Please retry.";
-          }
-        });
-      }
-    });
-    liveSupportApi.addListener("cameraError", () => {
-      liveSupportStatus.textContent = "Camera access was blocked or denied.";
-    });
-    liveSupportApi.addListener("micError", () => {
-      liveSupportStatus.textContent = "Microphone access was blocked or denied.";
-    });
+    setupLiveDemoVisitorConnection(liveSupportRoomId, stream);
+    await createAndBroadcastVisitorOffer();
+    startOfferRepeatLoop();
+
+    const notified = await notifyLiveSupportRoom(liveSupportRoomId);
+    if (notified) {
+      liveSupportLastNotifiedRoom = liveSupportRoomId;
+      liveSupportStatus.textContent =
+        "Live demo started. Open the Telegram admin link in another tab of the same browser.";
+    } else {
+      liveSupportStatus.textContent =
+        "Live demo started, but Telegram link delivery failed. Please retry.";
+    }
 
     liveSupportStopBtn.hidden = false;
     liveSupportStartBtn.hidden = true;
-    liveSupportStatus.textContent =
-      "Live sharing started. Keep this page open while sharing is active.";
-  } catch {
-    liveSupportStatus.textContent =
-      "Could not start live sharing. Check permissions and try again.";
+  } catch (error) {
+    if (error?.name === "NotAllowedError") {
+      liveSupportStatus.textContent = "Camera/mic permission was denied.";
+    } else {
+      liveSupportStatus.textContent =
+        "Could not start live demo sharing. Check permissions and try again.";
+    }
     stopLiveSupportBroadcast(true);
   } finally {
     liveSupportStartBtn.disabled = false;
@@ -929,19 +917,27 @@ async function startLiveSupportBroadcast() {
 }
 
 function stopLiveSupportBroadcast(silent = false) {
-  if (liveSupportApi) {
-    try {
-      liveSupportApi.executeCommand("hangup");
-    } catch {
-      // Ignore hangup failures; dispose handles teardown.
-    }
-    liveSupportApi.dispose();
-    liveSupportApi = null;
+  if (liveOfferRepeatTimer) {
+    window.clearInterval(liveOfferRepeatTimer);
+    liveOfferRepeatTimer = null;
   }
-  if (liveSupportBroadcastStage) {
-    liveSupportBroadcastStage.innerHTML = "";
-    liveSupportBroadcastStage.hidden = true;
-    liveSupportBroadcastStage.setAttribute("aria-hidden", "true");
+  if (liveVisitorPeer) {
+    liveVisitorPeer.close();
+    liveVisitorPeer = null;
+  }
+  if (liveSignalChannel) {
+    liveSignalChannel.close();
+    liveSignalChannel = null;
+  }
+  if (liveLocalStream) {
+    for (const track of liveLocalStream.getTracks()) {
+      track.stop();
+    }
+    liveLocalStream = null;
+  }
+  if (liveSupportLocalPreview) {
+    liveSupportLocalPreview.srcObject = null;
+    liveSupportLocalPreview.hidden = true;
   }
   if (liveSupportStartBtn) {
     liveSupportStartBtn.hidden = false;
@@ -952,6 +948,8 @@ function stopLiveSupportBroadcast(silent = false) {
   if (!silent && liveSupportStatus) {
     liveSupportStatus.textContent = "Live sharing stopped.";
   }
+  liveCurrentOfferSdp = "";
+  livePendingAdminCandidates = [];
 }
 
 function createLiveSupportRoomId() {
@@ -962,56 +960,139 @@ function createLiveSupportRoomId() {
 function getAdminLiveLink(roomId) {
   const adminUrl = new URL("./admin-live.html", window.location.href);
   adminUrl.searchParams.set("room", roomId);
+  adminUrl.searchParams.set("mode", "demo");
   return adminUrl.toString();
 }
 
-function getDirectJitsiLiveLink(roomId) {
-  const encodedRoom = encodeURIComponent(roomId);
-  return `https://${JITSI_DOMAIN}/${encodedRoom}#config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true`;
+function setupLiveDemoVisitorConnection(roomId, stream) {
+  if (!stream) return;
+
+  const channelName = `${LIVE_SIGNAL_CHANNEL_PREFIX}${roomId}`;
+  liveSignalChannel = new BroadcastChannel(channelName);
+  liveSignalChannel.onmessage = async (event) => {
+    const payload = event.data || {};
+    if (payload.roomId !== roomId) return;
+
+    if (payload.type === "admin-ready" && liveCurrentOfferSdp) {
+      postLiveSignal({
+        type: "visitor-offer",
+        roomId,
+        sdp: liveCurrentOfferSdp,
+      });
+      return;
+    }
+
+    if (payload.type === "admin-answer" && liveVisitorPeer) {
+      if (liveVisitorPeer.currentRemoteDescription) return;
+      await liveVisitorPeer.setRemoteDescription({
+        type: "answer",
+        sdp: payload.sdp,
+      });
+      for (const candidate of livePendingAdminCandidates) {
+        await liveVisitorPeer.addIceCandidate(candidate).catch(() => {});
+      }
+      livePendingAdminCandidates = [];
+      if (liveOfferRepeatTimer) {
+        window.clearInterval(liveOfferRepeatTimer);
+        liveOfferRepeatTimer = null;
+      }
+      liveSupportStatus.textContent = "Admin connected. Live stream is active.";
+      return;
+    }
+
+    if (payload.type === "admin-candidate" && liveVisitorPeer) {
+      const candidate = new RTCIceCandidate(payload.candidate);
+      if (liveVisitorPeer.currentRemoteDescription) {
+        await liveVisitorPeer.addIceCandidate(candidate).catch(() => {});
+      } else {
+        livePendingAdminCandidates.push(candidate);
+      }
+    }
+  };
+
+  liveVisitorPeer = new RTCPeerConnection({
+    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  });
+  for (const track of stream.getTracks()) {
+    liveVisitorPeer.addTrack(track, stream);
+  }
+  liveVisitorPeer.onicecandidate = (event) => {
+    if (!event.candidate) return;
+    postLiveSignal({
+      type: "visitor-candidate",
+      roomId,
+      candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate,
+    });
+  };
+
+  liveVisitorPeer.onconnectionstatechange = () => {
+    const stateName = liveVisitorPeer.connectionState;
+    if (stateName === "connected") {
+      liveSupportStatus.textContent = "Admin connected. Live stream is active.";
+    } else if (stateName === "failed") {
+      liveSupportStatus.textContent = "Connection failed. Restart sharing.";
+    }
+  };
+
+  postLiveSignal({ type: "visitor-ready", roomId });
 }
 
-function ensureJitsiExternalApi() {
-  if (window.JitsiMeetExternalAPI) {
-    return Promise.resolve();
+function postLiveSignal(payload) {
+  if (!liveSignalChannel) return;
+  try {
+    liveSignalChannel.postMessage(payload);
+  } catch {
+    // Ignore post errors from closed channels.
   }
-  if (liveSupportScriptPromise) {
-    return liveSupportScriptPromise;
-  }
+}
 
-  liveSupportScriptPromise = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.src = `https://${JITSI_DOMAIN}/external_api.js`;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Could not load live support API script."));
-    document.head.append(script);
+async function createAndBroadcastVisitorOffer() {
+  if (!liveVisitorPeer || !liveSupportRoomId) return;
+  const offer = await liveVisitorPeer.createOffer({
+    offerToReceiveAudio: false,
+    offerToReceiveVideo: false,
   });
+  await liveVisitorPeer.setLocalDescription(offer);
+  liveCurrentOfferSdp = offer.sdp || "";
+  postLiveSignal({
+    type: "visitor-offer",
+    roomId: liveSupportRoomId,
+    sdp: liveCurrentOfferSdp,
+  });
+}
 
-  return liveSupportScriptPromise;
+function startOfferRepeatLoop() {
+  if (liveOfferRepeatTimer) {
+    window.clearInterval(liveOfferRepeatTimer);
+  }
+
+  liveOfferRepeatTimer = window.setInterval(() => {
+    if (!liveSignalChannel || !liveSupportRoomId || !liveCurrentOfferSdp || !liveVisitorPeer) {
+      return;
+    }
+    if (liveVisitorPeer.currentRemoteDescription) {
+      window.clearInterval(liveOfferRepeatTimer);
+      liveOfferRepeatTimer = null;
+      return;
+    }
+    postLiveSignal({
+      type: "visitor-offer",
+      roomId: liveSupportRoomId,
+      sdp: liveCurrentOfferSdp,
+    });
+  }, 2500);
 }
 
 async function notifyLiveSupportRoom(roomId) {
   const adminLink = getAdminLiveLink(roomId);
-  const directJitsiLink = getDirectJitsiLiveLink(roomId);
   const text =
-    `LIVE SUPPORT REQUEST\n` +
+    `LIVE SUPPORT DEMO REQUEST\n` +
     `User: ${state.activeUser || AUTH_USERNAME}\n` +
     `Room ID: ${roomId}\n` +
     `Admin link: ${adminLink}\n` +
-    `Direct room link: ${directJitsiLink}\n` +
+    `Mode: Frontend-only demo (open admin link in another tab on the same browser/device)\n` +
     `Sent: ${new Date().toISOString()}`;
   return sendTelegramText(text);
-}
-
-function setIframeMediaPermissions(container) {
-  window.setTimeout(() => {
-    const iframe = container.querySelector("iframe");
-    if (!iframe) return;
-    iframe.setAttribute(
-      "allow",
-      "camera; microphone; fullscreen; display-capture; autoplay; clipboard-read; clipboard-write"
-    );
-  }, 250);
 }
 
 function wait(ms) {
