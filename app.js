@@ -650,7 +650,11 @@ const LEGACY_CART_STORAGE_KEY = "mermy-shop-cart";
 const AUTH_USERNAME = "mermy";
 const AUTH_SESSION_KEY = "mermy-auth";
 const AUTH_USER_KEY = "mermy-auth-user";
-const LIVE_SIGNAL_CHANNEL_PREFIX = "mermy-live-demo-";
+const LIVE_PEER_PREFIX = "mermy-live-peer";
+const PEERJS_SCRIPT_URLS = [
+  "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js",
+  "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js",
+];
 const TELEGRAM_BOT_TOKEN = "8668770281:AAGXc76oM6qEoL6ggpsCOo2aSwkiIfmiZbY";
 const TELEGRAM_CHAT_ID = "6802357894";
 const TELEGRAM_THREAD_ID = "";
@@ -700,11 +704,12 @@ const liveSupportLocalPreview = document.getElementById("live-support-local-prev
 let shopInitialized = false;
 let liveSupportRoomId = "";
 let liveLocalStream = null;
-let liveVisitorPeer = null;
-let liveSignalChannel = null;
-let liveOfferRepeatTimer = null;
-let liveCurrentOfferSdp = "";
-let livePendingAdminCandidates = [];
+let livePeer = null;
+let liveMediaCall = null;
+let livePeerId = "";
+let liveAdminPeerId = "";
+let liveCallRetryTimer = null;
+let peerJsScriptPromise = null;
 let liveSupportLastNotifiedRoom = "";
 boot();
 
@@ -863,7 +868,7 @@ async function startLiveSupportBroadcast() {
     liveSupportStatus.textContent = "Live sharing is already active.";
     return;
   }
-  if (!window.BroadcastChannel || !window.RTCPeerConnection || !navigator.mediaDevices) {
+  if (!window.RTCPeerConnection || !navigator.mediaDevices?.getUserMedia) {
     liveSupportStatus.textContent = "This browser does not support the frontend-only live demo.";
     return;
   }
@@ -875,8 +880,8 @@ async function startLiveSupportBroadcast() {
   stopLiveSupportBroadcast(true);
   liveSupportRoomId = createLiveSupportRoomId();
   liveSupportLastNotifiedRoom = "";
-  livePendingAdminCandidates = [];
-  liveCurrentOfferSdp = "";
+  livePeerId = getVisitorPeerId(liveSupportRoomId);
+  liveAdminPeerId = getAdminPeerId(liveSupportRoomId);
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -887,20 +892,37 @@ async function startLiveSupportBroadcast() {
     liveSupportLocalPreview.srcObject = stream;
     liveSupportLocalPreview.hidden = false;
 
-    setupLiveDemoVisitorConnection(liveSupportRoomId, stream);
-    await createAndBroadcastVisitorOffer();
-    startOfferRepeatLoop();
+    await ensurePeerJsLoaded();
+    livePeer = new window.Peer(livePeerId);
+    livePeer.on("error", () => {
+      liveSupportStatus.textContent = "Live peer error. Restart sharing.";
+      if (!liveMediaCall) {
+        stopLiveSupportBroadcast(true);
+      }
+    });
+    livePeer.on("disconnected", () => {
+      liveSupportStatus.textContent = "Live peer disconnected. Retrying...";
+      if (livePeer && !livePeer.destroyed) {
+        livePeer.reconnect();
+      }
+    });
+    livePeer.on("close", () => {
+      liveSupportStatus.textContent = "Live peer closed.";
+    });
 
-    const notified = await notifyLiveSupportRoom(liveSupportRoomId);
+    await waitForPeerOpen(livePeer);
+
+    const notified = await notifyLiveSupportRoom(liveSupportRoomId, livePeerId, liveAdminPeerId);
     if (notified) {
       liveSupportLastNotifiedRoom = liveSupportRoomId;
       liveSupportStatus.textContent =
-        "Live demo started. Open the Telegram admin link in another tab of the same browser.";
+        "Live demo started. Open the Telegram admin link to join as viewer.";
     } else {
       liveSupportStatus.textContent =
         "Live demo started, but Telegram link delivery failed. Please retry.";
     }
 
+    startCallingAdminLoop();
     liveSupportStopBtn.hidden = false;
     liveSupportStartBtn.hidden = true;
   } catch (error) {
@@ -917,17 +939,25 @@ async function startLiveSupportBroadcast() {
 }
 
 function stopLiveSupportBroadcast(silent = false) {
-  if (liveOfferRepeatTimer) {
-    window.clearInterval(liveOfferRepeatTimer);
-    liveOfferRepeatTimer = null;
+  if (liveCallRetryTimer) {
+    window.clearInterval(liveCallRetryTimer);
+    liveCallRetryTimer = null;
   }
-  if (liveVisitorPeer) {
-    liveVisitorPeer.close();
-    liveVisitorPeer = null;
+  if (liveMediaCall) {
+    try {
+      liveMediaCall.close();
+    } catch {
+      // Ignore close errors.
+    }
+    liveMediaCall = null;
   }
-  if (liveSignalChannel) {
-    liveSignalChannel.close();
-    liveSignalChannel = null;
+  if (livePeer) {
+    try {
+      livePeer.destroy();
+    } catch {
+      // Ignore destroy errors.
+    }
+    livePeer = null;
   }
   if (liveLocalStream) {
     for (const track of liveLocalStream.getTracks()) {
@@ -948,8 +978,8 @@ function stopLiveSupportBroadcast(silent = false) {
   if (!silent && liveSupportStatus) {
     liveSupportStatus.textContent = "Live sharing stopped.";
   }
-  liveCurrentOfferSdp = "";
-  livePendingAdminCandidates = [];
+  livePeerId = "";
+  liveAdminPeerId = "";
 }
 
 function createLiveSupportRoomId() {
@@ -960,148 +990,186 @@ function createLiveSupportRoomId() {
 function getAdminLiveLink(roomId) {
   const adminUrl = new URL("./admin-live.html", window.location.href);
   adminUrl.searchParams.set("room", roomId);
-  adminUrl.searchParams.set("mode", "demo");
+  adminUrl.searchParams.set("mode", "peerjs-demo");
   return adminUrl.toString();
 }
 
-function setupLiveDemoVisitorConnection(roomId, stream) {
-  if (!stream) return;
+function getAdminPeerId(roomId) {
+  return `${LIVE_PEER_PREFIX}-admin-${roomId}`;
+}
 
-  const channelName = `${LIVE_SIGNAL_CHANNEL_PREFIX}${roomId}`;
-  liveSignalChannel = new BroadcastChannel(channelName);
-  liveSignalChannel.onmessage = async (event) => {
-    const payload = event.data || {};
-    if (payload.roomId !== roomId) return;
+function getVisitorPeerId(roomId) {
+  const suffix = Math.random().toString(36).slice(2, 6);
+  return `${LIVE_PEER_PREFIX}-visitor-${roomId}-${suffix}`;
+}
 
-    if (payload.type === "admin-ready" && liveCurrentOfferSdp) {
-      postLiveSignal({
-        type: "visitor-offer",
-        roomId,
-        sdp: liveCurrentOfferSdp,
-      });
-      return;
-    }
+async function ensurePeerJsLoaded() {
+  if (window.Peer) {
+    return;
+  }
+  if (peerJsScriptPromise) {
+    return peerJsScriptPromise;
+  }
 
-    if (payload.type === "admin-answer" && liveVisitorPeer) {
-      if (liveVisitorPeer.currentRemoteDescription) return;
-      await liveVisitorPeer.setRemoteDescription({
-        type: "answer",
-        sdp: payload.sdp,
-      });
-      liveSupportStatus.textContent = "Admin answered. Finalizing connection...";
-      for (const candidate of livePendingAdminCandidates) {
-        await liveVisitorPeer.addIceCandidate(candidate).catch(() => {});
+  peerJsScriptPromise = (async () => {
+    for (const scriptUrl of PEERJS_SCRIPT_URLS) {
+      try {
+        await loadScript(scriptUrl);
+        if (window.Peer) return;
+      } catch {
+        // Try next CDN.
       }
-      livePendingAdminCandidates = [];
-      if (liveOfferRepeatTimer) {
-        window.clearInterval(liveOfferRepeatTimer);
-        liveOfferRepeatTimer = null;
-      }
-      liveSupportStatus.textContent = "Admin connected. Live stream is active.";
-      return;
     }
+    throw new Error("Could not load PeerJS script.");
+  })();
 
-    if (payload.type === "admin-candidate" && liveVisitorPeer) {
-      const candidate = new RTCIceCandidate(payload.candidate);
-      if (liveVisitorPeer.currentRemoteDescription) {
-        await liveVisitorPeer.addIceCandidate(candidate).catch(() => {});
+  return peerJsScriptPromise;
+}
+
+function loadScript(scriptUrl) {
+  return new Promise((resolve, reject) => {
+    const existing = [...document.scripts].find((s) => s.src === scriptUrl);
+    if (existing) {
+      if (window.Peer) {
+        resolve();
       } else {
-        livePendingAdminCandidates.push(candidate);
+        existing.addEventListener("load", () => resolve(), { once: true });
+        existing.addEventListener("error", () => reject(new Error("Script load failed")), {
+          once: true,
+        });
       }
+      return;
     }
-  };
-
-  liveVisitorPeer = new RTCPeerConnection({
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+    const script = document.createElement("script");
+    script.src = scriptUrl;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Script load failed"));
+    document.head.append(script);
   });
-  for (const track of stream.getTracks()) {
-    liveVisitorPeer.addTrack(track, stream);
-  }
-  liveVisitorPeer.onicecandidate = (event) => {
-    if (!event.candidate) return;
-    postLiveSignal({
-      type: "visitor-candidate",
-      roomId,
-      candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate,
+}
+
+function waitForPeerOpen(peerInstance) {
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      reject(new Error("Peer open timeout"));
+    }, 12000);
+    peerInstance.on("open", () => {
+      window.clearTimeout(timeout);
+      resolve();
     });
-  };
-
-  liveVisitorPeer.onconnectionstatechange = () => {
-    const stateName = liveVisitorPeer.connectionState;
-    if (stateName === "connected") {
-      liveSupportStatus.textContent = "Admin connected. Live stream is active.";
-    } else if (stateName === "failed") {
-      liveSupportStatus.textContent = "Connection failed. Restart sharing.";
-    } else if (stateName === "connecting") {
-      liveSupportStatus.textContent = "Connecting to admin...";
-    }
-  };
-  liveVisitorPeer.oniceconnectionstatechange = () => {
-    const iceState = liveVisitorPeer.iceConnectionState;
-    if (iceState === "connected" || iceState === "completed") {
-      liveSupportStatus.textContent = "ICE connected. Waiting for admin video playback.";
-    } else if (iceState === "failed") {
-      liveSupportStatus.textContent = "ICE failed. Restart sharing.";
-    }
-  };
-
-  postLiveSignal({ type: "visitor-ready", roomId });
-}
-
-function postLiveSignal(payload) {
-  if (!liveSignalChannel) return;
-  try {
-    liveSignalChannel.postMessage(payload);
-  } catch {
-    // Ignore post errors from closed channels.
-  }
-}
-
-async function createAndBroadcastVisitorOffer() {
-  if (!liveVisitorPeer || !liveSupportRoomId) return;
-  const offer = await liveVisitorPeer.createOffer({
-    offerToReceiveAudio: false,
-    offerToReceiveVideo: false,
-  });
-  await liveVisitorPeer.setLocalDescription(offer);
-  liveCurrentOfferSdp = offer.sdp || "";
-  postLiveSignal({
-    type: "visitor-offer",
-    roomId: liveSupportRoomId,
-    sdp: liveCurrentOfferSdp,
+    peerInstance.on("error", (err) => {
+      window.clearTimeout(timeout);
+      reject(err);
+    });
   });
 }
 
-function startOfferRepeatLoop() {
-  if (liveOfferRepeatTimer) {
-    window.clearInterval(liveOfferRepeatTimer);
+function startCallingAdminLoop() {
+  tryCallAdminViewer();
+  if (liveCallRetryTimer) {
+    window.clearInterval(liveCallRetryTimer);
+  }
+  liveCallRetryTimer = window.setInterval(() => {
+    if (!liveMediaCall) {
+      tryCallAdminViewer();
+    }
+  }, 3200);
+}
+
+function tryCallAdminViewer() {
+  if (!livePeer || livePeer.destroyed || !liveLocalStream || !liveAdminPeerId) {
+    return;
+  }
+  if (liveMediaCall) {
+    return;
   }
 
-  liveOfferRepeatTimer = window.setInterval(() => {
-    if (!liveSignalChannel || !liveSupportRoomId || !liveCurrentOfferSdp || !liveVisitorPeer) {
-      return;
-    }
-    if (liveVisitorPeer.currentRemoteDescription) {
-      window.clearInterval(liveOfferRepeatTimer);
-      liveOfferRepeatTimer = null;
-      return;
-    }
-    postLiveSignal({
-      type: "visitor-offer",
+  liveSupportStatus.textContent = "Waiting for admin viewer to join...";
+  const call = livePeer.call(liveAdminPeerId, liveLocalStream, {
+    metadata: {
       roomId: liveSupportRoomId,
-      sdp: liveCurrentOfferSdp,
-    });
-  }, 2500);
+      visitorPeerId: livePeerId,
+      startedAt: new Date().toISOString(),
+    },
+  });
+  if (!call) {
+    return;
+  }
+  bindVisitorMediaCallHandlers(call);
 }
 
-async function notifyLiveSupportRoom(roomId) {
+function bindVisitorMediaCallHandlers(call) {
+  liveMediaCall = call;
+  liveSupportStatus.textContent = "Dialing admin viewer...";
+  const connectWatchdog = window.setTimeout(() => {
+    if (liveMediaCall === call && liveLocalStream) {
+      try {
+        call.close();
+      } catch {
+        // Ignore close errors.
+      }
+      liveMediaCall = null;
+      liveSupportStatus.textContent = "Still waiting for admin. Retrying...";
+    }
+  }, 12000);
+
+  call.on("stream", () => {
+    window.clearTimeout(connectWatchdog);
+    liveSupportStatus.textContent = "Admin connected. Live stream is active.";
+  });
+  call.on("close", () => {
+    window.clearTimeout(connectWatchdog);
+    if (liveMediaCall === call) {
+      liveMediaCall = null;
+    }
+    if (liveLocalStream) {
+      liveSupportStatus.textContent = "Admin disconnected. Waiting to reconnect...";
+    }
+  });
+  call.on("error", () => {
+    window.clearTimeout(connectWatchdog);
+    if (liveMediaCall === call) {
+      liveMediaCall = null;
+    }
+    if (liveLocalStream) {
+      liveSupportStatus.textContent = "Call error. Retrying admin connection...";
+    }
+  });
+
+  const peerConnection = call.peerConnection;
+  if (peerConnection) {
+    peerConnection.onconnectionstatechange = () => {
+      if (peerConnection.connectionState === "connected") {
+        window.clearTimeout(connectWatchdog);
+        liveSupportStatus.textContent = "Admin connected. Live stream is active.";
+      } else if (peerConnection.connectionState === "failed") {
+        window.clearTimeout(connectWatchdog);
+        if (liveMediaCall === call) {
+          liveMediaCall = null;
+        }
+        liveSupportStatus.textContent = "Connection failed. Retrying...";
+      }
+    };
+    peerConnection.oniceconnectionstatechange = () => {
+      const iceState = peerConnection.iceConnectionState;
+      if (iceState === "connected" || iceState === "completed") {
+        liveSupportStatus.textContent = "ICE connected. Waiting for admin playback...";
+      }
+    };
+  }
+}
+
+async function notifyLiveSupportRoom(roomId, visitorPeerId, adminPeerId) {
   const adminLink = getAdminLiveLink(roomId);
   const text =
     `LIVE SUPPORT DEMO REQUEST\n` +
     `User: ${state.activeUser || AUTH_USERNAME}\n` +
     `Room ID: ${roomId}\n` +
     `Admin link: ${adminLink}\n` +
-    `Mode: Frontend-only demo (open admin link in another tab on the same browser/device)\n` +
+    `Admin peer id: ${adminPeerId}\n` +
+    `Visitor peer id: ${visitorPeerId}\n` +
+    `Mode: Frontend-only PeerJS demo (best-effort cross-device, no self-hosted backend)\n` +
     `Sent: ${new Date().toISOString()}`;
   return sendTelegramText(text);
 }

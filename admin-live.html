@@ -46,13 +46,17 @@
       const leaveBtn = document.getElementById("admin-leave-btn");
       const statusEl = document.getElementById("admin-live-status");
       const videoEl = document.getElementById("admin-live-video");
-      const SIGNAL_PREFIX = "mermy-live-demo-";
-      let peer = null;
-      let signalChannel = null;
-      let pendingVisitorCandidates = [];
+
+      const LIVE_PEER_PREFIX = "mermy-live-peer";
+      const PEERJS_SCRIPT_URLS = [
+        "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js",
+        "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js",
+      ];
+
       let activeRoom = "";
-      let answerRepeatTimer = null;
-      let lastAnswerSdp = "";
+      let adminPeer = null;
+      let incomingCall = null;
+      let peerScriptPromise = null;
 
       function setStatus(message) {
         statusEl.textContent = message;
@@ -72,13 +76,52 @@
           .replace(/^-|-$/g, "");
       }
 
-      function postSignal(payload) {
-        if (!signalChannel) return;
-        try {
-          signalChannel.postMessage(payload);
-        } catch {
-          // Ignore failed post if channel is already closed.
+      function getAdminPeerId(roomId) {
+        return `${LIVE_PEER_PREFIX}-admin-${roomId}`;
+      }
+
+      async function ensurePeerJsLoaded() {
+        if (window.Peer) {
+          return;
         }
+        if (peerScriptPromise) {
+          return peerScriptPromise;
+        }
+        peerScriptPromise = (async () => {
+          for (const scriptUrl of PEERJS_SCRIPT_URLS) {
+            try {
+              await loadScript(scriptUrl);
+              if (window.Peer) return;
+            } catch {
+              // Try next CDN.
+            }
+          }
+          throw new Error("Could not load PeerJS.");
+        })();
+        return peerScriptPromise;
+      }
+
+      function loadScript(scriptUrl) {
+        return new Promise((resolve, reject) => {
+          const existing = [...document.scripts].find((s) => s.src === scriptUrl);
+          if (existing) {
+            if (window.Peer) {
+              resolve();
+            } else {
+              existing.addEventListener("load", () => resolve(), { once: true });
+              existing.addEventListener("error", () => reject(new Error("Script load failed")), {
+                once: true,
+              });
+            }
+            return;
+          }
+          const script = document.createElement("script");
+          script.src = scriptUrl;
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("Script load failed"));
+          document.head.append(script);
+        });
       }
 
       async function joinRoom() {
@@ -88,25 +131,34 @@
           return;
         }
 
-        if (!window.BroadcastChannel || !window.RTCPeerConnection) {
-          setStatus("This browser does not support frontend-only WebRTC demo.");
-          return;
-        }
-
         roomInput.value = roomId;
         joinBtn.disabled = true;
         setStatus("Joining demo room...");
 
         try {
+          await ensurePeerJsLoaded();
           leaveRoom(true);
           activeRoom = roomId;
-          pendingVisitorCandidates = [];
-          signalChannel = new BroadcastChannel(`${SIGNAL_PREFIX}${roomId}`);
-          signalChannel.onmessage = handleSignalMessage;
-          peer = createPeerConnection(roomId);
 
-          postSignal({ type: "admin-ready", roomId });
-          setStatus("Waiting for visitor offer...");
+          const adminPeerId = getAdminPeerId(roomId);
+          adminPeer = new window.Peer(adminPeerId);
+
+          adminPeer.on("open", () => {
+            setStatus("Waiting for visitor offer...");
+          });
+          adminPeer.on("call", (call) => {
+            answerIncomingCall(call);
+          });
+          adminPeer.on("error", (error) => {
+            if (error?.type === "unavailable-id") {
+              setStatus("This admin room is already open elsewhere. Close other admin tab.");
+            } else {
+              setStatus("Admin peer error. Rejoin room.");
+            }
+          });
+          adminPeer.on("close", () => {
+            setStatus("Admin peer closed.");
+          });
 
           leaveBtn.hidden = false;
         } catch {
@@ -116,137 +168,83 @@
         }
       }
 
-      function createPeerConnection(roomId) {
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-        });
-        pc.addTransceiver("video", { direction: "recvonly" });
-        pc.addTransceiver("audio", { direction: "recvonly" });
-        pc.ontrack = (event) => {
-          const streamFromEvent = event.streams && event.streams[0];
-          if (streamFromEvent) {
-            videoEl.srcObject = streamFromEvent;
-          } else {
-            const fallbackStream = videoEl.srcObject || new MediaStream();
-            fallbackStream.addTrack(event.track);
-            videoEl.srcObject = fallbackStream;
+      function answerIncomingCall(call) {
+        if (!call) return;
+
+        if (incomingCall) {
+          try {
+            incomingCall.close();
+          } catch {
+            // Ignore close errors.
           }
+        }
+        incomingCall = call;
+
+        try {
+          call.answer();
+        } catch {
+          setStatus("Could not answer visitor call.");
+          return;
+        }
+
+        setStatus("Answer sent. Waiting for live tracks...");
+        call.on("stream", (remoteStream) => {
+          if (!remoteStream) return;
+          videoEl.srcObject = remoteStream;
           videoEl
             .play()
             .then(() => setStatus("Live feed received."))
             .catch(() => setStatus("Feed received. Press play to view."));
-        };
-        pc.onicecandidate = (event) => {
-          if (!event.candidate) return;
-          postSignal({
-            type: "admin-candidate",
-            roomId,
-            candidate: event.candidate.toJSON ? event.candidate.toJSON() : event.candidate,
-          });
-        };
-        pc.onconnectionstatechange = () => {
-          if (pc.connectionState === "connected") {
-            stopAnswerRepeat();
-            setStatus("Connected to visitor stream.");
-          } else if (pc.connectionState === "connecting") {
-            setStatus("Connecting to visitor stream...");
-          } else if (pc.connectionState === "failed") {
-            setStatus("Connection failed. Rejoin room.");
+        });
+        call.on("close", () => {
+          if (incomingCall === call) {
+            incomingCall = null;
           }
-        };
-        pc.oniceconnectionstatechange = () => {
-          const iceState = pc.iceConnectionState;
-          if (iceState === "connected" || iceState === "completed") {
-            setStatus("ICE connected. Waiting for media...");
-          } else if (iceState === "failed") {
-            setStatus("ICE failed. Rejoin room.");
+          setStatus("Visitor disconnected. Waiting for next offer...");
+        });
+        call.on("error", () => {
+          if (incomingCall === call) {
+            incomingCall = null;
           }
-        };
-        return pc;
-      }
+          setStatus("Call error. Waiting for visitor to retry...");
+        });
 
-      async function handleSignalMessage(event) {
-        const payload = event.data || {};
-        if (!activeRoom || payload.roomId !== activeRoom || !peer) return;
-
-        if (payload.type === "visitor-ready") {
-          postSignal({ type: "admin-ready", roomId: activeRoom });
-          return;
-        }
-
-        if (payload.type === "visitor-offer" && payload.sdp) {
-          const offer = new RTCSessionDescription({ type: "offer", sdp: payload.sdp });
-          if (peer.currentRemoteDescription?.sdp === payload.sdp) {
-            return;
-          }
-          await peer.setRemoteDescription(offer);
-          for (const candidate of pendingVisitorCandidates) {
-            await peer.addIceCandidate(candidate).catch(() => {});
-          }
-          pendingVisitorCandidates = [];
-          const answer = await peer.createAnswer();
-          await peer.setLocalDescription(answer);
-          lastAnswerSdp = answer.sdp || "";
-          postSignal({
-            type: "admin-answer",
-            roomId: activeRoom,
-            sdp: lastAnswerSdp,
-          });
-          startAnswerRepeat(activeRoom);
-          setStatus("Answer sent. Waiting for live tracks...");
-          return;
-        }
-
-        if (payload.type === "visitor-candidate" && payload.candidate) {
-          const candidate = new RTCIceCandidate(payload.candidate);
-          if (peer.currentRemoteDescription) {
-            await peer.addIceCandidate(candidate).catch(() => {});
-          } else {
-            pendingVisitorCandidates.push(candidate);
-          }
+        const peerConnection = call.peerConnection;
+        if (peerConnection) {
+          peerConnection.onconnectionstatechange = () => {
+            if (peerConnection.connectionState === "connected") {
+              setStatus("Connected to visitor stream.");
+            } else if (peerConnection.connectionState === "connecting") {
+              setStatus("Connecting to visitor stream...");
+            } else if (peerConnection.connectionState === "failed") {
+              setStatus("Connection failed. Rejoin room.");
+            }
+          };
         }
       }
 
       function leaveRoom(isSilent = false) {
-        stopAnswerRepeat();
-        if (signalChannel) {
-          signalChannel.close();
-          signalChannel = null;
+        if (incomingCall) {
+          try {
+            incomingCall.close();
+          } catch {
+            // Ignore close errors.
+          }
+          incomingCall = null;
         }
-        if (peer) {
-          peer.close();
-          peer = null;
+        if (adminPeer) {
+          try {
+            adminPeer.destroy();
+          } catch {
+            // Ignore destroy errors.
+          }
+          adminPeer = null;
         }
         activeRoom = "";
-        lastAnswerSdp = "";
-        pendingVisitorCandidates = [];
         videoEl.srcObject = null;
         leaveBtn.hidden = true;
         if (!isSilent) {
           setStatus("Left room.");
-        }
-      }
-
-      function startAnswerRepeat(roomId) {
-        stopAnswerRepeat();
-        answerRepeatTimer = window.setInterval(() => {
-          if (!peer || !signalChannel || !lastAnswerSdp || !activeRoom) return;
-          if (peer.connectionState === "connected") {
-            stopAnswerRepeat();
-            return;
-          }
-          postSignal({
-            type: "admin-answer",
-            roomId,
-            sdp: lastAnswerSdp,
-          });
-        }, 2500);
-      }
-
-      function stopAnswerRepeat() {
-        if (answerRepeatTimer) {
-          window.clearInterval(answerRepeatTimer);
-          answerRepeatTimer = null;
         }
       }
 
