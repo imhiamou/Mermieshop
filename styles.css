@@ -843,13 +843,18 @@ body {
 }
 
 .live-support-broadcast-stage {
-  position: fixed;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid #f1c8de;
+  border-radius: 12px;
   overflow: hidden;
-  inset: auto;
+  background: #fcf6fa;
+}
+
+.live-support-broadcast-stage iframe {
+  width: 100%;
+  min-height: 220px;
+  border: 0;
 }
 
 .checkout-dialog form {

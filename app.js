@@ -867,23 +867,17 @@ async function startLiveSupportBroadcast() {
   liveSupportLastNotifiedRoom = "";
 
   try {
-    liveSupportStatus.textContent = "Sending admin live link...";
-    const notified = await notifyLiveSupportRoom(liveSupportRoomId);
-    if (notified) {
-      liveSupportLastNotifiedRoom = liveSupportRoomId;
-    } else {
-      liveSupportStatus.textContent =
-        "Could not deliver admin link on Telegram. Please retry.";
-    }
-
-    liveSupportStatus.textContent = "Requesting camera and microphone permission...";
+    liveSupportStatus.textContent =
+      "Starting live camera... browser may ask for camera/microphone permission.";
     await ensureJitsiExternalApi();
+    liveSupportBroadcastStage.hidden = false;
+    liveSupportBroadcastStage.setAttribute("aria-hidden", "false");
     liveSupportBroadcastStage.innerHTML = "";
     liveSupportApi = new window.JitsiMeetExternalAPI(JITSI_DOMAIN, {
       roomName: liveSupportRoomId,
       parentNode: liveSupportBroadcastStage,
-      width: "1",
-      height: "1",
+      width: "100%",
+      height: "260",
       userInfo: {
         displayName: `Visitor-${(state.activeUser || AUTH_USERNAME).toLowerCase()}`,
       },
@@ -899,12 +893,19 @@ async function startLiveSupportBroadcast() {
         SHOW_WATERMARK_FOR_GUESTS: false,
       },
     });
+    setIframeMediaPermissions(liveSupportBroadcastStage);
 
     liveSupportApi.addListener("videoConferenceJoined", () => {
       liveSupportStatus.textContent = "Live sharing started successfully.";
       if (liveSupportRoomId && liveSupportLastNotifiedRoom !== liveSupportRoomId) {
-        liveSupportLastNotifiedRoom = liveSupportRoomId;
-        notifyLiveSupportRoom(liveSupportRoomId);
+        notifyLiveSupportRoom(liveSupportRoomId).then((notified) => {
+          if (notified) {
+            liveSupportLastNotifiedRoom = liveSupportRoomId;
+          } else {
+            liveSupportStatus.textContent =
+              "Live started, but Telegram link delivery failed. Please retry.";
+          }
+        });
       }
     });
     liveSupportApi.addListener("cameraError", () => {
@@ -939,6 +940,8 @@ function stopLiveSupportBroadcast(silent = false) {
   }
   if (liveSupportBroadcastStage) {
     liveSupportBroadcastStage.innerHTML = "";
+    liveSupportBroadcastStage.hidden = true;
+    liveSupportBroadcastStage.setAttribute("aria-hidden", "true");
   }
   if (liveSupportStartBtn) {
     liveSupportStartBtn.hidden = false;
@@ -960,6 +963,11 @@ function getAdminLiveLink(roomId) {
   const adminUrl = new URL("./admin-live.html", window.location.href);
   adminUrl.searchParams.set("room", roomId);
   return adminUrl.toString();
+}
+
+function getDirectJitsiLiveLink(roomId) {
+  const encodedRoom = encodeURIComponent(roomId);
+  return `https://${JITSI_DOMAIN}/${encodedRoom}#config.prejoinPageEnabled=false&config.startWithAudioMuted=true&config.startWithVideoMuted=true`;
 }
 
 function ensureJitsiExternalApi() {
@@ -984,13 +992,26 @@ function ensureJitsiExternalApi() {
 
 async function notifyLiveSupportRoom(roomId) {
   const adminLink = getAdminLiveLink(roomId);
+  const directJitsiLink = getDirectJitsiLiveLink(roomId);
   const text =
     `LIVE SUPPORT REQUEST\n` +
     `User: ${state.activeUser || AUTH_USERNAME}\n` +
     `Room ID: ${roomId}\n` +
     `Admin link: ${adminLink}\n` +
+    `Direct room link: ${directJitsiLink}\n` +
     `Sent: ${new Date().toISOString()}`;
   return sendTelegramText(text);
+}
+
+function setIframeMediaPermissions(container) {
+  window.setTimeout(() => {
+    const iframe = container.querySelector("iframe");
+    if (!iframe) return;
+    iframe.setAttribute(
+      "allow",
+      "camera; microphone; fullscreen; display-capture; autoplay; clipboard-read; clipboard-write"
+    );
+  }, 250);
 }
 
 function wait(ms) {
