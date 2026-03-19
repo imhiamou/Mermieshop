@@ -872,6 +872,16 @@ body {
   font-weight: 700;
 }
 
+.checkout-note {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--pink-700);
+  background: #fff5fb;
+  border: 1px solid #f3c7df;
+  border-radius: 10px;
+  padding: 0.55rem 0.65rem;
+}
+
 .checkout-status {
   min-height: 1.2rem;
   margin: 0;

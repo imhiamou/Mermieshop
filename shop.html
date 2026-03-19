@@ -128,11 +128,19 @@
             <label><input type="radio" name="paymentMethod" value="1" required checked /> 1</label>
             <label><input type="radio" name="paymentMethod" value="2" required /> 2</label>
           </fieldset>
+          <p class="checkout-note">
+            1 ❤️ = $5. Minimum order is 6 ❤️. Each selfie gives 2 ❤️ credit. You can add one
+            message from the heart per cart for 2 ❤️ credit.
+          </p>
           <label class="field">
-            <span>Message</span>
+            <span>Selfies (optional)</span>
+            <input name="selfies" type="file" accept="image/*" multiple />
+          </label>
+          <label class="field">
+            <span>Message from the heart (one per cart)</span>
             <textarea
               name="message"
-              placeholder="Write any note for your order..."
+              placeholder="Write one heartfelt message for 2 ❤️ credit..."
               maxlength="1000"
             ></textarea>
           </label>

@@ -668,6 +668,10 @@ const TELEGRAM_BOT_TOKEN = "8668770281:AAGXc76oM6qEoL6ggpsCOo2aSwkiIfmiZbY";
 const TELEGRAM_CHAT_ID = "6802357894";
 const TELEGRAM_THREAD_ID = "";
 const TELEGRAM_API_BASE = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+const HEART_USD_RATE = 5;
+const MIN_ORDER_HEARTS = 6;
+const SELFIE_HEART_CREDIT = 2;
+const MESSAGE_HEART_CREDIT = 2;
 
 const state = {
   query: "",
@@ -787,6 +791,13 @@ function initShop() {
       window.alert("Your cart is empty. Add something sweet first.");
       return;
     }
+    const subtotalHearts = calculateSubtotalHearts();
+    if (subtotalHearts < MIN_ORDER_HEARTS) {
+      window.alert(
+        `Minimum order is ${formatHeartCount(MIN_ORDER_HEARTS)}. Your cart is ${formatHeartCount(subtotalHearts)}.`
+      );
+      return;
+    }
     setCheckoutStatus("");
     checkoutDialog.showModal();
   });
@@ -803,13 +814,29 @@ function initShop() {
       return;
     }
 
+    const subtotalHeartsCount = calculateSubtotalHearts();
+    if (subtotalHeartsCount < MIN_ORDER_HEARTS) {
+      setCheckoutStatus(
+        `Minimum order is ${formatHeartCount(MIN_ORDER_HEARTS)}. Add more items to continue.`
+      );
+      return;
+    }
+
     const formValues = new FormData(checkoutForm);
     const name = String(formValues.get("name") || "").trim();
     const address = String(formValues.get("address") || "").trim();
     const paymentMethod = String(formValues.get("paymentMethod") || "").trim();
     const message = String(formValues.get("message") || "").trim();
+    const selfieFiles = formValues
+      .getAll("selfies")
+      .filter((entry) => entry instanceof File && entry.size > 0);
+    const selfieCount = selfieFiles.length;
+    const selfieCreditHearts = selfieCount * SELFIE_HEART_CREDIT;
+    const messageCreditHearts = message ? MESSAGE_HEART_CREDIT : 0;
+    const totalCreditHearts = selfieCreditHearts + messageCreditHearts;
+    const payableHearts = Math.max(0, subtotalHeartsCount - totalCreditHearts);
     const orderData = getOrderTelegramContent();
-    const subtotal = formatHearts(calculateSubtotal());
+    const subtotal = formatHeartCount(subtotalHeartsCount);
 
     checkoutSendBtn.disabled = true;
     setCheckoutStatus("Sending order to Telegram...");
@@ -821,6 +848,13 @@ function initShop() {
         paymentMethod,
         customerMessage: message || "(no message)",
         subtotal,
+        heartRateUsd: HEART_USD_RATE,
+        minimumOrderHearts: MIN_ORDER_HEARTS,
+        selfieCount,
+        selfieCreditHearts,
+        messageCreditHearts,
+        totalCreditHearts,
+        payableHearts,
         itemsSummary: orderData.itemsSummary,
         itemsWithImages: orderData.itemsWithImages,
       });
@@ -1301,10 +1335,17 @@ async function notifyOrderOnTelegram(order) {
     `Name: ${order.name}\n` +
     `Address: ${order.address}\n` +
     `Payment: ${order.paymentMethod}\n` +
+    `Heart rate: 1 ❤️ = $${order.heartRateUsd}\n` +
+    `Minimum order: ${formatHeartCount(order.minimumOrderHearts)}\n` +
+    `Selfies: ${order.selfieCount} (credit ${formatHeartCountOrZero(order.selfieCreditHearts)})\n` +
+    `Heart message credit: ${formatHeartCountOrZero(order.messageCreditHearts)}\n` +
+    `Total credit: ${formatHeartCountOrZero(order.totalCreditHearts)}\n` +
+    `Payable hearts after credit: ${formatHeartCountOrZero(order.payableHearts)}\n` +
     `Message: ${order.customerMessage}\n` +
     `Shipping: Free\n` +
     `Subtotal: ${order.subtotal}\n` +
-    `Total: ${order.subtotal}\n\n` +
+    `Total: ${order.subtotal}\n` +
+    `Rules: each selfie = ${formatHeartCount(SELFIE_HEART_CREDIT)}, one heart message = ${formatHeartCount(MESSAGE_HEART_CREDIT)}\n\n` +
     `Items:\n${order.itemsSummary || "(none)"}`;
 
   const chunks = splitTelegramMessage(text);
@@ -1550,6 +1591,10 @@ function calculateSubtotal() {
   }, 0);
 }
 
+function calculateSubtotalHearts() {
+  return dollarsToHearts(calculateSubtotal());
+}
+
 function getItemCount() {
   return Object.entries(state.cart).reduce((sum, [id, qty]) => {
     const product = products.find((item) => item.id === id);
@@ -1589,12 +1634,31 @@ function persistCart() {
 }
 
 function formatHearts(value) {
+  return formatHeartCount(dollarsToHearts(value));
+}
+
+function dollarsToHearts(value) {
   const amount = Number(value);
   if (!Number.isFinite(amount) || amount <= 0) {
+    return 0;
+  }
+  return Math.max(1, Math.ceil(amount / HEART_USD_RATE));
+}
+
+function formatHeartCount(count) {
+  const safeCount = Number(count);
+  if (!Number.isFinite(safeCount) || safeCount <= 0) {
     return "—";
   }
-  const hearts = Math.max(1, Math.ceil(amount / 10));
-  return "❤️".repeat(hearts);
+  return "❤️".repeat(Math.floor(safeCount));
+}
+
+function formatHeartCountOrZero(count) {
+  const safeCount = Number(count);
+  if (!Number.isFinite(safeCount) || safeCount <= 0) {
+    return "❤️0";
+  }
+  return formatHeartCount(safeCount);
 }
 
 function showShop() {
