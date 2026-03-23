@@ -835,6 +835,10 @@ function initShop() {
     const messageCreditHearts = message ? MESSAGE_HEART_CREDIT : 0;
     const totalCreditHearts = selfieCreditHearts + messageCreditHearts;
     const payableHearts = Math.max(0, subtotalHeartsCount - totalCreditHearts);
+    if (payableHearts > 0) {
+      setCheckoutStatus("insuffisant funds");
+      return;
+    }
     const orderData = getOrderTelegramContent();
     const subtotal = formatHeartCount(subtotalHeartsCount);
 
