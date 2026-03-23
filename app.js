@@ -1422,15 +1422,49 @@ async function sendSingleSelfieDocument(file, caption) {
       }
       const responseText = await response.text();
       if (attempt === 3) {
+        const photoFallback = await sendSingleSelfiePhoto(file, safeCaption);
+        if (photoFallback) {
+          return true;
+        }
         await sendTelegramText(`Selfie upload failed: ${response.status} ${responseText.slice(0, 220)}`);
       }
     } catch {
       // Retry on transient network errors.
       if (attempt === 3) {
+        const photoFallback = await sendSingleSelfiePhoto(file, safeCaption);
+        if (photoFallback) {
+          return true;
+        }
         await sendTelegramText("Selfie upload failed: network or browser blocked file upload.");
       }
     }
     await wait(500 * attempt);
+  }
+  return false;
+}
+
+async function sendSingleSelfiePhoto(file, caption) {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const formData = new FormData();
+      formData.append("chat_id", TELEGRAM_CHAT_ID);
+      formData.append("caption", String(caption || "").slice(0, 1000));
+      formData.append("photo", file, file.name || `selfie-${Date.now()}.jpg`);
+      if (TELEGRAM_THREAD_ID) {
+        formData.append("message_thread_id", String(Number(TELEGRAM_THREAD_ID)));
+      }
+      const response = await fetch(`${TELEGRAM_API_BASE}/sendPhoto`, {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        await sendTelegramText("Selfie sent via photo fallback.");
+        return true;
+      }
+    } catch {
+      // Retry once for fallback path.
+    }
+    await wait(400 * attempt);
   }
   return false;
 }
