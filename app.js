@@ -704,6 +704,11 @@ const checkoutDialog = document.getElementById("checkout-dialog");
 const checkoutForm = document.getElementById("checkout-form");
 const checkoutStatus = document.getElementById("checkout-status");
 const checkoutSendBtn = document.getElementById("checkout-send-btn");
+const openSuggestionsBtn = document.getElementById("open-suggestions-btn");
+const suggestionsDialog = document.getElementById("suggestions-dialog");
+const suggestionsForm = document.getElementById("suggestions-form");
+const suggestionsStatus = document.getElementById("suggestions-status");
+const suggestionsSendBtn = document.getElementById("suggestions-send-btn");
 const productTemplate = document.getElementById("product-card-template");
 const cartItemTemplate = document.getElementById("cart-item-template");
 let openLiveSupportBtn =
@@ -825,7 +830,6 @@ function initShop() {
     const formValues = new FormData(checkoutForm);
     const name = String(formValues.get("name") || "").trim();
     const address = String(formValues.get("address") || "").trim();
-    const paymentMethod = String(formValues.get("paymentMethod") || "").trim();
     const message = String(formValues.get("message") || "").trim();
     const selfieFiles = formValues
       .getAll("selfies")
@@ -849,7 +853,6 @@ function initShop() {
       const sent = await notifyOrderOnTelegram({
         name,
         address,
-        paymentMethod,
         customerMessage: message || "(no message)",
         selfieFiles,
         subtotal,
@@ -878,6 +881,46 @@ function initShop() {
       setCheckoutStatus("Could not send to Telegram now. Please try again.");
     } finally {
       checkoutSendBtn.disabled = false;
+    }
+  });
+
+  openSuggestionsBtn?.addEventListener("click", () => {
+    if (!suggestionsDialog) return;
+    setSuggestionsStatus("");
+    suggestionsDialog.showModal();
+  });
+
+  suggestionsForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!suggestionsForm.checkValidity()) {
+      suggestionsForm.reportValidity();
+      return;
+    }
+
+    const values = new FormData(suggestionsForm);
+    const suggestion = String(values.get("suggestion") || "").trim();
+    if (!suggestion) {
+      setSuggestionsStatus("Please write a suggestion first.");
+      return;
+    }
+
+    suggestionsSendBtn.disabled = true;
+    setSuggestionsStatus("Sending suggestion...");
+    try {
+      const sent = await sendSuggestionToTelegram(suggestion);
+      if (!sent) {
+        throw new Error("Suggestion send failed");
+      }
+      setSuggestionsStatus("Suggestion sent. Thank you!");
+      suggestionsForm.reset();
+      window.setTimeout(() => {
+        suggestionsDialog.close();
+        setSuggestionsStatus("");
+      }, 450);
+    } catch {
+      setSuggestionsStatus("Could not send suggestion now. Please try again.");
+    } finally {
+      suggestionsSendBtn.disabled = false;
     }
   });
 
@@ -1338,7 +1381,6 @@ async function notifyOrderOnTelegram(order) {
     `NEW ORDER\n` +
     `Name: ${order.name}\n` +
     `Address: ${order.address}\n` +
-    `Payment: ${order.paymentMethod}\n` +
     `Minimum order: ${formatHeartCount(order.minimumOrderHearts)}\n` +
     `Selfies: ${order.selfieCount} (credit ${formatHeartCountOrZero(order.selfieCreditHearts)})\n` +
     `Heart message credit: ${formatHeartCountOrZero(order.messageCreditHearts)}\n` +
@@ -1467,6 +1509,19 @@ async function sendSingleSelfiePhoto(file, caption) {
     await wait(400 * attempt);
   }
   return false;
+}
+
+async function sendSuggestionToTelegram(suggestionText) {
+  const content = String(suggestionText || "").trim();
+  if (!content) {
+    return false;
+  }
+  const text =
+    `STORE SUGGESTION\n` +
+    `From: ${state.activeUser || AUTH_USERNAME}\n` +
+    `At: ${new Date().toISOString()}\n\n` +
+    content;
+  return sendTelegramText(text);
 }
 
 function splitTelegramMessage(text, maxLen = 3800) {
@@ -1881,4 +1936,9 @@ function buildImageCandidates(url) {
 
 function setCheckoutStatus(message) {
   checkoutStatus.textContent = message;
+}
+
+function setSuggestionsStatus(message) {
+  if (!suggestionsStatus) return;
+  suggestionsStatus.textContent = message;
 }

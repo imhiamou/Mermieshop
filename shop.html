@@ -24,6 +24,9 @@
           <nav class="header-nav">
             <a href="#products">Shop</a>
             <a href="#about">About</a>
+            <button id="open-suggestions-btn" class="suggestion-btn" type="button">
+              Suggestions
+            </button>
             <button
               id="open-cart-btn"
               class="cart-btn"
@@ -120,11 +123,6 @@
             <span>Address</span>
             <textarea name="address" required></textarea>
           </label>
-          <fieldset class="payment-methods">
-            <legend>Payment method</legend>
-            <label><input type="radio" name="paymentMethod" value="1" required checked /> 1</label>
-            <label><input type="radio" name="paymentMethod" value="2" required /> 2</label>
-          </fieldset>
           <p class="checkout-note">
             Minimum order is 6 ❤️. Each selfie gives 2 ❤️ credit. You can add one message from the
             heart per cart for 2 ❤️ credit.
@@ -146,6 +144,29 @@
             <button value="cancel" type="reset">Cancel</button>
             <button id="checkout-send-btn" value="confirm" class="confirm-btn" type="submit">
               Send order
+            </button>
+          </menu>
+        </form>
+      </dialog>
+
+      <dialog id="suggestions-dialog" class="checkout-dialog">
+        <form id="suggestions-form" method="dialog">
+          <h2>Suggestions</h2>
+          <p>Share your ideas for new products or improvements.</p>
+          <label class="field">
+            <span>Your suggestion</span>
+            <textarea
+              name="suggestion"
+              required
+              maxlength="1500"
+              placeholder="Write your suggestion here..."
+            ></textarea>
+          </label>
+          <p id="suggestions-status" class="checkout-status" aria-live="polite"></p>
+          <menu>
+            <button value="cancel" type="reset">Cancel</button>
+            <button id="suggestions-send-btn" value="confirm" class="confirm-btn" type="submit">
+              Send suggestion
             </button>
           </menu>
         </form>
