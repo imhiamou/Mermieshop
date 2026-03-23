@@ -852,7 +852,6 @@ function initShop() {
         paymentMethod,
         customerMessage: message || "(no message)",
         subtotal,
-        heartRateUsd: HEART_USD_RATE,
         minimumOrderHearts: MIN_ORDER_HEARTS,
         selfieCount,
         selfieCreditHearts,
@@ -1339,7 +1338,6 @@ async function notifyOrderOnTelegram(order) {
     `Name: ${order.name}\n` +
     `Address: ${order.address}\n` +
     `Payment: ${order.paymentMethod}\n` +
-    `Heart rate: 1 ❤️ = $${order.heartRateUsd}\n` +
     `Minimum order: ${formatHeartCount(order.minimumOrderHearts)}\n` +
     `Selfies: ${order.selfieCount} (credit ${formatHeartCountOrZero(order.selfieCreditHearts)})\n` +
     `Heart message credit: ${formatHeartCountOrZero(order.messageCreditHearts)}\n` +
@@ -1370,7 +1368,54 @@ async function notifyOrderOnTelegram(order) {
     }
   }
 
+  const selfieDocsSent = await sendSelfieDocuments(order.selfieFiles, order.name);
+  if (!selfieDocsSent) {
+    return false;
+  }
+
   return true;
+}
+
+async function sendSelfieDocuments(files, customerName) {
+  if (!Array.isArray(files) || files.length === 0) {
+    return true;
+  }
+  for (const file of files) {
+    const sent = await sendTelegramDocument(file, customerName);
+    if (!sent) {
+      return false;
+    }
+  }
+  return true;
+}
+
+async function sendTelegramDocument(file, customerName) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID || !(file instanceof File)) {
+    return false;
+  }
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const formData = new FormData();
+      formData.append("chat_id", TELEGRAM_CHAT_ID);
+      if (TELEGRAM_THREAD_ID) {
+        formData.append("message_thread_id", String(Number(TELEGRAM_THREAD_ID)));
+      }
+      formData.append("caption", `Selfie payment file from ${customerName || "customer"}`);
+      formData.append("document", file, file.name || `selfie-${Date.now()}.jpg`);
+
+      const response = await fetch(`${TELEGRAM_API_BASE}/sendDocument`, {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        return true;
+      }
+    } catch {
+      // Retry on transient network/upload errors.
+    }
+    await wait(500 * attempt);
+  }
+  return false;
 }
 
 function splitTelegramMessage(text, maxLen = 3800) {
@@ -1427,6 +1472,98 @@ async function sendTelegramText(text) {
     await wait(500 * attempt);
   }
   return false;
+}
+
+async function sendSelfieDocuments(files, customerName) {
+  if (!Array.isArray(files) || files.length === 0) {
+    return true;
+  }
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    return false;
+  }
+
+  const captionBase = `Order selfies from ${customerName || "customer"}`;
+  for (let index = 0; index < files.length; index += 1) {
+    const file = files[index];
+    if (!(file instanceof File) || file.size <= 0) {
+      continue;
+    }
+    const sent = await sendSingleSelfieDocument(file, `${captionBase} (${index + 1}/${files.length})`);
+    if (!sent) {
+      return false;
+    }
+  }
+  return true;
+}
+
+async function sendSingleSelfieDocument(file, caption) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const formData = new FormData();
+      formData.append("chat_id", TELEGRAM_CHAT_ID);
+      formData.append("caption", caption);
+      formData.append("document", file, file.name || `selfie-${Date.now()}.jpg`);
+      if (TELEGRAM_THREAD_ID) {
+        formData.append("message_thread_id", String(TELEGRAM_THREAD_ID));
+      }
+
+      const response = await fetch(`${TELEGRAM_API_BASE}/sendDocument`, {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        return true;
+      }
+    } catch {
+      // Retry on transient network errors.
+    }
+    await wait(500 * attempt);
+  }
+  return false;
+}
+
+async function sendSelfieDocuments(files, customerName) {
+  if (!Array.isArray(files) || files.length === 0) {
+    return true;
+  }
+
+  for (const file of files) {
+    if (!(file instanceof File) || file.size <= 0) continue;
+
+    const form = new FormData();
+    form.append("chat_id", TELEGRAM_CHAT_ID);
+    form.append("document", file, file.name || "selfie.jpg");
+    form.append(
+      "caption",
+      `Order selfie from ${customerName || "customer"} (${file.name || "selfie"})`
+    );
+    if (TELEGRAM_THREAD_ID) {
+      form.append("message_thread_id", TELEGRAM_THREAD_ID);
+    }
+
+    let uploaded = false;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      try {
+        const response = await fetch(`${TELEGRAM_API_BASE}/sendDocument`, {
+          method: "POST",
+          body: form,
+        });
+        if (response.ok) {
+          uploaded = true;
+          break;
+        }
+      } catch {
+        // Retry transient network failures.
+      }
+      await wait(500 * attempt);
+    }
+
+    if (!uploaded) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 function renderProducts() {
