@@ -1606,7 +1606,16 @@ function renderProducts() {
     const addToCartBtn = node.querySelector("button");
 
     if (imageList.length > 0) {
-      renderImageGallery(imageScrollEl, imageList, product.name, "product-image-slide");
+      imageScrollEl.innerHTML = "";
+      for (const imageUrl of imageList) {
+        const img = document.createElement("img");
+        img.className = "product-image-slide";
+        setImageWithFallback(img, imageUrl);
+        img.alt = product.name;
+        img.loading = "lazy";
+        img.referrerPolicy = "no-referrer";
+        imageScrollEl.append(img);
+      }
       galleryEl.hidden = false;
       iconEl.hidden = true;
     } else {
@@ -1940,4 +1949,30 @@ function setCheckoutStatus(message) {
 function setSuggestionsStatus(message) {
   if (!suggestionsStatus) return;
   suggestionsStatus.textContent = message;
+}
+
+function setImageWithFallback(imgElement, url) {
+  const candidates = buildImageCandidates(url);
+  let index = 0;
+
+  const loadNext = () => {
+    if (index >= candidates.length) {
+      return;
+    }
+    imgElement.src = candidates[index];
+    index += 1;
+  };
+
+  imgElement.addEventListener("error", loadNext);
+  loadNext();
+}
+
+function buildImageCandidates(url) {
+  const candidates = [
+    url,
+    url.replace("_.avif", "_.webp"),
+    url.replace("_.avif", ""),
+    url.replace(/\.jpg_\d+x\d+q\d+\.jpg(?:_.avif|_.webp)?$/, ".jpg"),
+  ];
+  return [...new Set(candidates)];
 }
