@@ -709,6 +709,7 @@ const suggestionsDialog = document.getElementById("suggestions-dialog");
 const suggestionsForm = document.getElementById("suggestions-form");
 const suggestionsStatus = document.getElementById("suggestions-status");
 const suggestionsSendBtn = document.getElementById("suggestions-send-btn");
+const suggestionsCancelBtn = document.getElementById("suggestions-cancel-btn");
 const productTemplate = document.getElementById("product-card-template");
 const cartItemTemplate = document.getElementById("cart-item-template");
 let openLiveSupportBtn =
@@ -888,6 +889,15 @@ function initShop() {
     if (!suggestionsDialog) return;
     setSuggestionsStatus("");
     suggestionsDialog.showModal();
+  });
+
+  suggestionsCancelBtn?.addEventListener("click", () => {
+    suggestionsDialog?.close("cancel");
+  });
+
+  suggestionsDialog?.addEventListener("close", () => {
+    suggestionsForm?.reset();
+    setSuggestionsStatus("");
   });
 
   suggestionsForm?.addEventListener("submit", async (event) => {
