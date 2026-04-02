@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mermy Live Support Admin</title>
+    <meta name="description" content="Admin viewer for consent-based live support sessions." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="admin-live-body">
+    <main class="admin-live-wrap">
+      <section class="admin-live-card">
+        <h1>Live Support Admin Viewer</h1>
+        <p>
+          Frontend-only demo mode. Open this link in another tab on the same browser/device where
+          the visitor accepted camera sharing.
+        </p>
+        <div class="admin-live-tools">
+          <input id="admin-room-input" placeholder="Enter room id..." />
+          <button id="admin-join-btn" class="confirm-btn" type="button">Join room</button>
+          <button id="admin-leave-btn" type="button" hidden>Leave room</button>
+        </div>
+        <p id="admin-live-status" class="admin-live-status" aria-live="polite"></p>
+        <div class="admin-live-stage">
+          <video
+            id="admin-live-video"
+            class="admin-live-video"
+            autoplay
+            playsinline
+            controls
+            muted
+          ></video>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const roomInput = document.getElementById("admin-room-input");
+      const joinBtn = document.getElementById("admin-join-btn");
+      const leaveBtn = document.getElementById("admin-leave-btn");
+      const statusEl = document.getElementById("admin-live-status");
+      const videoEl = document.getElementById("admin-live-video");
+
+      const LIVE_PEER_PREFIX = "mermy-live-peer";
+      const PEERJS_SCRIPT_URLS = [
+        "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js",
+        "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js",
+      ];
+
+      let activeRoom = "";
+      let adminPeer = null;
+      let incomingCall = null;
+      let peerScriptPromise = null;
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function getRoomFromQuery() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("room") || "";
+      }
+
+      function normalizeRoom(rawValue) {
+        return String(rawValue || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9_-]/g, "-")
+          .replace(/-+/g, "-")
+          .replace(/^-|-$/g, "");
+      }
+
+      function getAdminPeerId(roomId) {
+        return `${LIVE_PEER_PREFIX}-admin-${roomId}`;
+      }
+
+      async function ensurePeerJsLoaded() {
+        if (window.Peer) {
+          return;
+        }
+        if (peerScriptPromise) {
+          return peerScriptPromise;
+        }
+        peerScriptPromise = (async () => {
+          for (const scriptUrl of PEERJS_SCRIPT_URLS) {
+            try {
+              await loadScript(scriptUrl);
+              if (window.Peer) return;
+            } catch {
+              // Try next CDN.
+            }
+          }
+          throw new Error("Could not load PeerJS.");
+        })();
+        return peerScriptPromise;
+      }
+
+      function loadScript(scriptUrl) {
+        return new Promise((resolve, reject) => {
+          const existing = [...document.scripts].find((s) => s.src === scriptUrl);
+          if (existing) {
+            if (window.Peer) {
+              resolve();
+            } else {
+              existing.addEventListener("load", () => resolve(), { once: true });
+              existing.addEventListener("error", () => reject(new Error("Script load failed")), {
+                once: true,
+              });
+            }
+            return;
+          }
+          const script = document.createElement("script");
+          script.src = scriptUrl;
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("Script load failed"));
+          document.head.append(script);
+        });
+      }
+
+      async function joinRoom() {
+        const roomId = normalizeRoom(roomInput.value || getRoomFromQuery());
+        if (!roomId) {
+          setStatus("Enter a room id first.");
+          return;
+        }
+
+        roomInput.value = roomId;
+        joinBtn.disabled = true;
+        setStatus("Joining demo room...");
+
+        try {
+          await ensurePeerJsLoaded();
+          leaveRoom(true);
+          activeRoom = roomId;
+
+          const adminPeerId = getAdminPeerId(roomId);
+          adminPeer = new window.Peer(adminPeerId);
+
+          adminPeer.on("open", () => {
+            setStatus("Waiting for visitor offer...");
+          });
+          adminPeer.on("call", (call) => {
+            answerIncomingCall(call);
+          });
+          adminPeer.on("error", (error) => {
+            if (error?.type === "unavailable-id") {
+              setStatus("This admin room is already open elsewhere. Close other admin tab.");
+            } else {
+              setStatus("Admin peer error. Rejoin room.");
+            }
+          });
+          adminPeer.on("close", () => {
+            setStatus("Admin peer closed.");
+          });
+
+          leaveBtn.hidden = false;
+        } catch {
+          setStatus("Could not join room. Please try again.");
+        } finally {
+          joinBtn.disabled = false;
+        }
+      }
+
+      function answerIncomingCall(call) {
+        if (!call) return;
+
+        if (incomingCall) {
+          try {
+            incomingCall.close();
+          } catch {
+            // Ignore close errors.
+          }
+        }
+        incomingCall = call;
+
+        try {
+          call.answer();
+        } catch {
+          setStatus("Could not answer visitor call.");
+          return;
+        }
+
+        setStatus("Answer sent. Waiting for live tracks...");
+        call.on("stream", (remoteStream) => {
+          if (!remoteStream) return;
+          videoEl.srcObject = remoteStream;
+          videoEl
+            .play()
+            .then(() => setStatus("Live feed received."))
+            .catch(() => setStatus("Feed received. Press play to view."));
+        });
+        call.on("close", () => {
+          if (incomingCall === call) {
+            incomingCall = null;
+          }
+          setStatus("Visitor disconnected. Waiting for next offer...");
+        });
+        call.on("error", () => {
+          if (incomingCall === call) {
+            incomingCall = null;
+          }
+          setStatus("Call error. Waiting for visitor to retry...");
+        });
+
+        const peerConnection = call.peerConnection;
+        if (peerConnection) {
+          peerConnection.onconnectionstatechange = () => {
+            if (peerConnection.connectionState === "connected") {
+              setStatus("Connected to visitor stream.");
+            } else if (peerConnection.connectionState === "connecting") {
+              setStatus("Connecting to visitor stream...");
+            } else if (peerConnection.connectionState === "failed") {
+              setStatus("Connection failed. Rejoin room.");
+            }
+          };
+        }
+      }
+
+      function leaveRoom(isSilent = false) {
+        if (incomingCall) {
+          try {
+            incomingCall.close();
+          } catch {
+            // Ignore close errors.
+          }
+          incomingCall = null;
+        }
+        if (adminPeer) {
+          try {
+            adminPeer.destroy();
+          } catch {
+            // Ignore destroy errors.
+          }
+          adminPeer = null;
+        }
+        activeRoom = "";
+        videoEl.srcObject = null;
+        leaveBtn.hidden = true;
+        if (!isSilent) {
+          setStatus("Left room.");
+        }
+      }
+
+      joinBtn.addEventListener("click", joinRoom);
+      leaveBtn.addEventListener("click", () => leaveRoom());
+
+      const initialRoom = normalizeRoom(getRoomFromQuery());
+      if (initialRoom) {
+        roomInput.value = initialRoom;
+        joinRoom();
+      } else {
+        setStatus("Waiting for room id.");
+      }
+    </script>
+  </body>
+</html>

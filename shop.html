@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mermy Shop</title>
+    <meta name="description" content="Mermy Shop storefront." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="shop-app">
+      <div class="page-shell">
+        <header class="site-header">
+          <a class="brand" href="#">
+            <span class="brand-badge" aria-hidden="true">🧜‍♀️</span>
+            <span>Mermy Shop</span>
+          </a>
+          <nav class="header-nav">
+            <a href="#products">Shop</a>
+            <a href="#about">About</a>
+            <button id="open-suggestions-btn" class="suggestion-btn" type="button">
+              Suggestions
+            </button>
+            <button
+              id="open-cart-btn"
+              class="cart-btn"
+              type="button"
+              aria-label="Open shopping cart"
+            >
+              Cart <span id="cart-count">0</span>
+            </button>
+          </nav>
+        </header>
+
+        <main>
+          <div id="shop-home-view">
+            <section class="hero">
+              <p class="hero-kicker">Small & Lovely</p>
+              <h1>Welcome to Mermy Shop</h1>
+              <p>
+                Explore our category bubbles and check back soon. We are preparing the first
+                wave of cute pink products.
+              </p>
+              <a class="hero-cta" href="#products">Browse Products</a>
+            </section>
+
+            <section class="shop-section" id="products">
+              <div class="shop-tools">
+                <h2>Featured Items</h2>
+                <div class="filters">
+                  <label class="field">
+                    <span>Search</span>
+                    <input id="search-input" type="search" placeholder="Find a product..." />
+                  </label>
+                </div>
+              </div>
+              <div class="category-strip">
+                <p class="strip-label">Categories</p>
+                <div
+                  id="category-bubbles"
+                  class="category-bubbles"
+                  aria-label="Product categories"
+                ></div>
+              </div>
+              <div id="product-grid" class="product-grid" aria-live="polite"></div>
+            </section>
+
+            <section id="about" class="about-section"></section>
+          </div>
+
+          <section id="product-detail-view" class="product-detail-view" hidden>
+            <button id="detail-back-btn" class="detail-back-btn" type="button">
+              ← Back to shop
+            </button>
+            <article class="detail-card">
+              <div id="detail-image-scroll" class="detail-image-scroll"></div>
+              <p id="detail-description" class="detail-description"></p>
+            </article>
+          </section>
+        </main>
+      </div>
+
+      <aside id="cart-drawer" class="cart-drawer" aria-hidden="true">
+        <div class="cart-header">
+          <h2>Your Cart</h2>
+          <button id="close-cart-btn" type="button" aria-label="Close cart">✕</button>
+        </div>
+        <div id="cart-items" class="cart-items"></div>
+        <div class="cart-summary">
+          <div class="row">
+            <span>Subtotal</span>
+            <strong id="subtotal-value">—</strong>
+          </div>
+          <div class="row">
+            <span>Shipping</span>
+            <strong id="shipping-value">—</strong>
+          </div>
+          <div class="row total">
+            <span>Total</span>
+            <strong id="total-value">—</strong>
+          </div>
+          <button id="checkout-btn" class="checkout-btn" type="button">Checkout</button>
+        </div>
+      </aside>
+
+      <div id="overlay" class="overlay" hidden></div>
+
+      <dialog id="checkout-dialog" class="checkout-dialog">
+        <form id="checkout-form" method="dialog">
+          <h2>Checkout</h2>
+          <p>Enter your details and send your order.</p>
+          <label class="field">
+            <span>Name</span>
+            <input name="name" required />
+          </label>
+          <label class="field">
+            <span>Address</span>
+            <textarea name="address" required></textarea>
+          </label>
+          <p class="checkout-note">
+            Minimum order is 6 ❤️. Each selfie gives 2 ❤️ credit. You can add one message from the
+            heart per cart for 2 ❤️ credit.
+          </p>
+          <label class="field">
+            <span>Selfies (optional)</span>
+            <input name="selfies" type="file" accept="image/*" multiple />
+          </label>
+          <label class="field">
+            <span>Message from the heart (one per cart)</span>
+            <textarea
+              name="message"
+              placeholder="Write one heartfelt message for 2 ❤️ credit..."
+              maxlength="1000"
+            ></textarea>
+          </label>
+          <p id="checkout-status" class="checkout-status" aria-live="polite"></p>
+          <menu>
+            <button value="cancel" type="reset">Cancel</button>
+            <button id="checkout-send-btn" value="confirm" class="confirm-btn" type="submit">
+              Send order
+            </button>
+          </menu>
+        </form>
+      </dialog>
+
+      <dialog id="suggestions-dialog" class="checkout-dialog">
+        <form id="suggestions-form" method="dialog">
+          <h2>Suggestions</h2>
+          <p>Share your ideas for new products or improvements.</p>
+          <label class="field">
+            <span>Your suggestion</span>
+            <textarea
+              name="suggestion"
+              required
+              maxlength="1500"
+              placeholder="Write your suggestion here..."
+            ></textarea>
+          </label>
+          <p id="suggestions-status" class="checkout-status" aria-live="polite"></p>
+          <menu>
+            <button value="cancel" type="reset">Cancel</button>
+            <button id="suggestions-send-btn" value="confirm" class="confirm-btn" type="submit">
+              Send suggestion
+            </button>
+          </menu>
+        </form>
+      </dialog>
+
+      <dialog id="live-support-dialog" class="live-support-dialog">
+        <section class="live-support-content">
+          <h2>Store update notes</h2>
+          <p>
+            This section is for notes about anything new in the store, and it will include the
+            date of each update.
+          </p>
+          <p id="live-support-status" class="live-support-status" aria-live="polite">
+            press continue 
+          </p>
+          <video
+            id="live-support-local-preview"
+            class="live-support-preview"
+            autoplay
+            playsinline
+            muted
+            hidden
+          ></video>
+          <menu>
+     
+            <button id="live-support-start-btn" class="confirm-btn" type="button">
+              Continue 
+            </button>
+          </menu>
+        </section>
+      </dialog>
+    </div>
+
+    <template id="product-card-template">
+      <article class="product-card">
+        <div class="product-gallery" hidden>
+          <div class="product-image-scroll"></div>
+        </div>
+        <div class="product-icon" aria-hidden="true"></div>
+        <h3></h3>
+        <p class="product-description"></p>
+        <div class="product-footer">
+          <strong class="price"></strong>
+          <button type="button">Add to cart</button>
+        </div>
+      </article>
+    </template>
+
+    <template id="cart-item-template">
+      <article class="cart-item">
+        <div class="cart-item-main">
+          <button type="button" class="cart-item-preview" aria-label="Open product details">
+            <img class="cart-item-image" alt="" hidden />
+            <span class="cart-item-fallback" aria-hidden="true"></span>
+          </button>
+          <div>
+            <h4></h4>
+            <p class="cart-item-price"></p>
+          </div>
+        </div>
+        <div class="qty-tools">
+          <button type="button" class="decrease" aria-label="Decrease quantity">−</button>
+          <span class="qty"></span>
+          <button type="button" class="increase" aria-label="Increase quantity">+</button>
+          <button type="button" class="remove">Remove</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
