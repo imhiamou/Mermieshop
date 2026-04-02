@@ -924,7 +924,6 @@ function initShop() {
     }
   });
 
-  initLiveSupport();
 }
 
 function initLiveSupport() {
